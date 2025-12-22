@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid md:grid-cols-2 gap-6 items-start">
+  <div class="card rounded-3xl p-6 text-center">
+    <h1 class="text-2xl font-semibold">{{ t('setup.create_title') }}</h1>
+
+    <form class="mt-6 space-y-4" method="post" action="{{ url_for('create_household') }}">
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('setup.household_name_label') }}</label>
+        <input name="household_name" type="text"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+               placeholder="{{ t('setup.household_name_placeholder') }}" />
+      </div>
+      <button class="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 transition font-semibold">
+        {{ t('setup.create_button') }}
+      </button>
+    </form>
+  </div>
+
+  <div class="card rounded-3xl p-6 text-center">
+    <h1 class="text-2xl font-semibold">{{ t('setup.join_title') }}</h1>
+
+    <form class="mt-6 space-y-4" method="post" action="{{ url_for('join_household') }}">
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('setup.join_code_label') }}</label>
+        <input id="joinCodeInput" name="join_code" type="text" required
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400 uppercase tracking-widest"
+               placeholder="{{ t('setup.join_code_placeholder') }}" dir="ltr" />
+      </div>
+      <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition font-semibold">
+        {{ t('setup.join_button') }}
+      </button>
+    </form>
+
+    <div class="mt-6">
+      <div class="text-xs uppercase tracking-widest text-slate-400">{{ t('common.or') }}</div>
+    </div>
+
+    <!-- Join by QR (live camera or gallery) -->
+    <div class="mt-4 soft rounded-3xl p-5 text-start">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="font-semibold">{{ t('setup.qr_title') }}</div>
+          <div class="mt-1 text-xs text-slate-300">
+            {{ t('setup.qr_description') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex flex-col sm:flex-row gap-2">
+        <button type="button" id="openQrModal"
+                class="w-full px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold text-center">
+          {{ t('setup.qr_scan_button') }}
+        </button>
+
+        <label for="qrGalleryInput"
+               class="w-full px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold text-center cursor-pointer">
+          {{ t('setup.qr_select_button') }}
+        </label>
+      </div>
+
+      <input id="qrGalleryInput" type="file" accept="image/*" class="sr-only" />
+
+      <div id="qrStatus" class="mt-3 text-xs text-slate-300"></div>
+
+      <!-- hidden canvas for decoding -->
+      <canvas id="qrCanvas" class="hidden"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="qrModal" class="fixed inset-0 hidden items-center justify-center p-4 z-50">
+  <div id="qrModalBackdrop" class="absolute inset-0 bg-black/70"></div>
+
+  <div class="relative w-full max-w-lg card rounded-3xl p-5 text-start">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="text-sm text-slate-300">{{ t('setup.qr_modal_title') }}</div>
+        <h2 class="mt-1 text-xl font-semibold">{{ t('setup.qr_modal_subtitle') }}</h2>
+        <div class="mt-1 text-xs text-slate-300">
+          {{ t('setup.qr_modal_help') }}
+        </div>
+      </div>
+      <button type="button" id="closeQrModal"
+              class="px-2 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-xs">
+        {{ t('setup.qr_close') }}
+      </button>
+    </div>
+
+    <div id="qrScannerView" class="mt-4">
+      <div class="relative overflow-hidden rounded-2xl bg-black/40">
+        <video id="qrVideo" class="w-full h-64 sm:h-72 object-cover" playsinline muted></video>
+        <canvas id="qrOverlay" class="absolute inset-0 w-full h-full"></canvas>
+      </div>
+      <div id="qrLiveStatus" class="mt-3 text-xs text-slate-300"></div>
+    </div>
+
+    <div id="qrResultView" class="mt-4 hidden">
+      <div class="text-sm text-slate-300">{{ t('setup.qr_detected') }}</div>
+      <div id="qrResultCode"
+           class="mt-2 rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-center font-mono tracking-widest ltr"></div>
+      <form id="qrJoinForm" class="mt-4 space-y-3" method="post" action="{{ url_for('join_household') }}">
+        <input id="qrJoinCodeInput" name="join_code" type="hidden" />
+        <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition text-sm font-semibold">
+          {{ t('setup.qr_join_button') }}
+        </button>
+        <button type="button" id="qrRescan"
+                class="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold">
+          {{ t('setup.qr_scan_again') }}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+  (function () {
+    const openBtn = document.getElementById('openQrModal');
+    const modal = document.getElementById('qrModal');
+    const backdrop = document.getElementById('qrModalBackdrop');
+    const closeBtn = document.getElementById('closeQrModal');
+    const rescanBtn = document.getElementById('qrRescan');
+    const scannerView = document.getElementById('qrScannerView');
+    const resultView = document.getElementById('qrResultView');
+    const resultCodeEl = document.getElementById('qrResultCode');
+    const joinInput = document.getElementById('qrJoinCodeInput');
+
+    const video = document.getElementById('qrVideo');
+    const overlay = document.getElementById('qrOverlay');
+    const overlayCtx = overlay ? overlay.getContext('2d') : null;
+    const canvas = document.getElementById('qrCanvas');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+
+    const statusEl = document.getElementById('qrStatus');
+    const liveStatusEl = document.getElementById('qrLiveStatus');
+    const galIn = document.getElementById('qrGalleryInput');
+
+    let stream = null;
+    let rafId = null;
+    let lastScanAt = 0;
+    let audioCtx = null;
+    const qrStrings = {
+      cameraNotSupported: "{{ t('setup.qr_status.camera_not_supported') }}",
+      scannerUnavailable: "{{ t('setup.qr_status.scanner_unavailable') }}",
+      startingCamera: "{{ t('setup.qr_status.starting_camera') }}",
+      cameraBlocked: "{{ t('setup.qr_status.camera_blocked') }}",
+      cameraFailed: "{{ t('setup.qr_status.camera_failed') }}",
+      invalidCode: "{{ t('setup.qr_status.invalid_code') }}",
+      reading: "{{ t('setup.qr_status.reading') }}",
+      notFound: "{{ t('setup.qr_status.not_found') }}",
+      detected: "{{ t('setup.qr_status.detected') }}",
+    };
+
+    function setStatus(el, msg, isError) {
+      if (!el) return;
+      el.textContent = msg || '';
+      el.className = 'mt-3 text-xs ' + (isError ? 'text-rose-200' : 'text-slate-300');
+    }
+
+    function ensureAudio() {
+      if (audioCtx) return;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      audioCtx = new AudioCtx();
+    }
+
+    function beep() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = 880;
+      gain.gain.value = 0.0001;
+      gain.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.13);
+    }
+
+    function vibrate() {
+      if (navigator.vibrate) navigator.vibrate(120);
+    }
+
+    function extractJoinCode(payload) {
+      let v = (payload || '').trim();
+      if (!v) return null;
+      if (v.startsWith('http://') || v.startsWith('https://')) {
+        try {
+          const u = new URL(v);
+          v = u.pathname || '';
+        } catch (_) {
+          return null;
+        }
+      }
+      if (v.startsWith('/')) {
+        if (v.startsWith('/join/')) {
+          return decodeURIComponent(v.slice('/join/'.length));
+        }
+        return null;
+      }
+      return v;
+    }
+
+    function resetViews() {
+      if (scannerView) scannerView.classList.remove('hidden');
+      if (resultView) resultView.classList.add('hidden');
+      if (resultCodeEl) resultCodeEl.textContent = '';
+      if (joinInput) joinInput.value = '';
+    }
+
+    function showResult(payload, fromLive) {
+      const code = extractJoinCode(payload);
+      if (!code) {
+        setStatus(fromLive ? liveStatusEl : statusEl, qrStrings.invalidCode, true);
+        return false;
+      }
+      if (resultCodeEl) resultCodeEl.textContent = code.toUpperCase();
+      if (joinInput) joinInput.value = code;
+      if (scannerView) scannerView.classList.add('hidden');
+      if (resultView) resultView.classList.remove('hidden');
+      return true;
+    }
+
+    function openModal() {
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      if (!modal) return;
+      stopScan();
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.style.overflow = '';
+    }
+
+    function syncCanvas() {
+      if (!video || !canvas || !overlay) return;
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      if (!w || !h) return;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      if (overlay.width !== w || overlay.height !== h) {
+        overlay.width = w;
+        overlay.height = h;
+      }
+    }
+
+    function drawLine(a, b) {
+      if (!overlayCtx) return;
+      overlayCtx.beginPath();
+      overlayCtx.moveTo(a.x, a.y);
+      overlayCtx.lineTo(b.x, b.y);
+      overlayCtx.lineWidth = 4;
+      overlayCtx.strokeStyle = 'rgba(99, 102, 241, 0.9)';
+      overlayCtx.stroke();
+    }
+
+    function drawBox(loc) {
+      if (!overlayCtx || !overlay) return;
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+      if (!loc) return;
+      drawLine(loc.topLeftCorner, loc.topRightCorner);
+      drawLine(loc.topRightCorner, loc.bottomRightCorner);
+      drawLine(loc.bottomRightCorner, loc.bottomLeftCorner);
+      drawLine(loc.bottomLeftCorner, loc.topLeftCorner);
+    }
+
+    async function startScan() {
+      if (!video || !ctx) return;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setStatus(liveStatusEl, qrStrings.cameraNotSupported, true);
+        return;
+      }
+      if (!window.jsQR) {
+        setStatus(liveStatusEl, qrStrings.scannerUnavailable, true);
+        return;
+      }
+      resetViews();
+      lastScanAt = 0;
+      setStatus(liveStatusEl, qrStrings.startingCamera);
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false,
+        });
+      } catch (_) {
+        setStatus(liveStatusEl, qrStrings.cameraBlocked, true);
+        return;
+      }
+
+      video.srcObject = stream;
+      try {
+        await video.play();
+      } catch (_) {
+        setStatus(liveStatusEl, qrStrings.cameraFailed, true);
+        return;
+      }
+      syncCanvas();
+      rafId = requestAnimationFrame(scanFrame);
+    }
+
+    function stopScan() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
+        stream = null;
+      }
+      if (overlayCtx && overlay) overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+      if (video) video.srcObject = null;
+    }
+
+    function scanFrame() {
+      rafId = requestAnimationFrame(scanFrame);
+      if (!video || video.readyState < 2 || !ctx) return;
+      const now = Date.now();
+      if (now - lastScanAt < 100) return;
+      lastScanAt = now;
+
+      syncCanvas();
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+      if (overlayCtx) drawBox(code && code.location ? code.location : null);
+
+      if (code && code.data) {
+        const ok = showResult(code.data, true);
+        if (ok) {
+          beep();
+          vibrate();
+          stopScan();
+        }
+      }
+    }
+
+    function openScanner() {
+      openModal();
+      ensureAudio();
+      setStatus(liveStatusEl, '');
+      startScan();
+    }
+
+    function showResultModal(payload) {
+      openModal();
+      stopScan();
+      resetViews();
+      showResult(payload, false);
+    }
+
+    async function decodeFile(file) {
+      if (!file || !ctx || !window.jsQR) return;
+      setStatus(statusEl, qrStrings.reading, false);
+      const img = new Image();
+      img.onload = function () {
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (!code || !code.data) {
+          setStatus(statusEl, qrStrings.notFound, true);
+          return;
+        }
+
+        setStatus(statusEl, qrStrings.detected, false);
+        showResultModal(code.data);
+      };
+      img.onerror = function () {
+        setStatus(statusEl, 'Could not read that image. Try again.', true);
+      };
+      img.src = URL.createObjectURL(file);
+    }
+
+    if (openBtn) openBtn.addEventListener('click', openScanner);
+    if (backdrop) backdrop.addEventListener('click', closeModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (rescanBtn) {
+      rescanBtn.addEventListener('click', () => {
+        setStatus(liveStatusEl, '');
+        startScan();
+      });
+    }
+
+    if (galIn) galIn.addEventListener('click', () => { galIn.value = ''; });
+    if (galIn) galIn.addEventListener('change', (e) => decodeFile(e.target.files[0]));
+  })();
+</script>
+{% endblock %}

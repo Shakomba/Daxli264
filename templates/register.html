@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card rounded-3xl p-6 max-w-xl mx-auto text-center">
+  <h1 class="text-2xl font-semibold">{{ t('register.title') }}</h1>
+
+  <form class="mt-6 space-y-4" method="post" action="{{ url_for('register_post', next=request.args.get('next')) }}">
+    {% if request.args.get('next') %}
+      <input type="hidden" name="next" value="{{ request.args.get('next') }}">
+    {% endif %}
+
+    <div class="text-start">
+      <label class="text-sm text-slate-200">{{ t('register.name_label') }}</label>
+      <input name="name" type="text" required autocomplete="name"
+             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+             placeholder="{{ t('register.name_placeholder') }}" />
+    </div>
+
+    <div class="text-start">
+      <label class="text-sm text-slate-200">{{ t('register.email_label') }}</label>
+      <input name="email" type="email" required autocomplete="email" autocapitalize="none" spellcheck="false"
+             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+             placeholder="{{ t('register.email_placeholder') }}" dir="ltr" />
+    </div>
+
+    <div class="text-start">
+      <label class="text-sm text-slate-200">{{ t('register.password_label') }}</label>
+      <input name="password" type="password" required autocomplete="new-password" minlength="{{ password_min_length }}"
+             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+             placeholder="{{ t('register.password_placeholder') }}" />
+    </div>
+
+    <div class="text-start">
+      <label class="text-sm text-slate-200">{{ t('register.confirm_password_label') }}</label>
+      <input name="confirm_password" type="password" required autocomplete="new-password" minlength="{{ password_min_length }}"
+             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+             placeholder="{{ t('register.password_placeholder') }}" />
+    </div>
+
+    <div class="text-xs text-slate-300">
+      {{ t('register.password_help', min_len=password_min_length) }}
+    </div>
+
+    <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition font-semibold">
+      {{ t('register.button') }}
+    </button>
+  </form>
+
+  <div class="mt-4 text-sm text-slate-300">
+    <a class="text-indigo-300 font-semibold"
+       href="{{ url_for('login', next=request.args.get('next')) }}">{{ t('register.have_account') }}</a>
+  </div>
+</div>
+{% endblock %}

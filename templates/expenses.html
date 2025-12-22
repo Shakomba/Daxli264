@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="flex flex-col items-center text-center gap-2">
+  <h1 class="text-2xl font-semibold">{{ t('expenses.title') }}</h1>
+</div>
+
+<div class="mt-6 flex flex-col gap-6 lg:grid lg:grid-cols-3 lg:items-start">
+  <!-- Add expense (first on mobile, right column on desktop) -->
+  <div class="card rounded-3xl p-6 text-center lg:col-start-3 lg:row-start-1">
+    <h2 class="text-xl font-semibold">{{ t('expenses.add_title') }}</h2>
+
+    <form class="mt-5 space-y-4" method="post" action="{{ url_for('add_expense') }}">
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('expenses.title_label') }}</label>
+        <input name="title" required
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+               placeholder="{{ t('expenses.title_placeholder') }}" />
+      </div>
+
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('expenses.amount_label') }}</label>
+        <input name="amount_iqd" type="number" required min="250" step="250"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+               placeholder="250" dir="ltr" />
+        <div class="mt-1 text-xs text-slate-400">{{ t('expenses.amount_help') }}</div>
+      </div>
+
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('expenses.date_label') }}</label>
+        <input name="expense_date" type="date" value="{{ today }}"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400 ltr" />
+      </div>
+
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('expenses.participants_label') }}</label>
+        <div class="mt-2 space-y-2">
+          {% for m in members %}
+            <label class="flex items-center justify-between gap-3 px-3 py-2 rounded-2xl bg-white/5 border border-white/10">
+              <div class="flex items-center gap-3">
+                {% if m.id == current_user.id %}
+                  <!-- Disabled checkbox doesn't submit, so keep a hidden field for backend -->
+                  <input type="hidden" name="participants" value="{{ m.id }}">
+                  <input type="checkbox" checked disabled class="h-4 w-4 opacity-70">
+                {% else %}
+                  <input type="checkbox" name="participants" value="{{ m.id }}" checked class="h-4 w-4">
+                {% endif %}
+                <span class="text-sm">{{ m.name }}</span>
+              </div>
+              {% if m.id == current_user.id %}
+                <span class="inline-flex items-center text-xs px-2.5 py-1 rounded-full bg-white/5 ring-1 ring-white/15 text-slate-200 leading-none">{{ t('common.you') }}</span>
+              {% endif %}
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition font-semibold">
+        {{ t('expenses.add_button') }}
+      </button>
+    </form>
+  </div>
+
+  <!-- Entries list -->
+  <div class="lg:col-start-1 lg:col-span-2 card rounded-3xl p-6">
+    {% if expenses|length == 0 %}
+      <div class="soft rounded-3xl p-6 text-center text-slate-200">
+        {{ t('expenses.no_expenses') }}
+      </div>
+    {% else %}
+      <div class="space-y-3">
+        {% for e in expenses %}
+          {% set mine = (e.payer_id == current_user.id) %}
+          <div class="soft rounded-3xl p-4 sm:p-5 text-center {% if mine %}ring-1 ring-inset ring-indigo-400/25 bg-indigo-500/10{% endif %}">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+              <div class="min-w-0">
+                <div class="font-semibold text-lg truncate">
+                  {{ e.title }}
+                </div>
+                <div class="text-xs text-slate-300 mt-1">
+                  <div class="ltr">{{ e.expense_date }}</div>
+                  <div class="mt-1 inline-flex items-center gap-2">
+                    <img src="{{ url_for('avatar', user_id=e.payer_id) }}" alt="{{ user_by_id[e.payer_id].name }}"
+                         class="h-5 w-5 rounded-full object-cover ring-1 ring-white/10 bg-white/5">
+                    <span>{{ user_by_id[e.payer_id].name }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="shrink-0 flex flex-col items-center sm:items-end gap-2 min-w-[96px]">
+                <div class="text-xl font-black text-slate-100"><span class="ltr">{{ e.amount_iqd|iqd }}</span></div>
+
+                <div class="h-9 flex items-center justify-center">
+                  {% if mine %}
+                    <form method="post" action="{{ url_for('delete_expense', expense_id=e.id) }}"
+                          onsubmit="return confirmAction('{{ t('expenses.delete_confirm') | e }}');" class="m-0">
+                      <button class="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-xs font-semibold text-white">
+                        {{ t('expenses.delete_button') }}
+                      </button>
+                    </form>
+                  {% else %}
+                    <span class="inline-block w-[96px] h-[36px]"></span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+<div class="text-xs text-slate-300 mt-3">
+              {% set pids = parts_map.get(e.id, []) %}
+              <div class="flex flex-wrap justify-center gap-1">
+                {% for pid in pids %}
+                  <span class="inline-flex items-center gap-2 px-2 py-1 rounded-xl bg-white/5 border border-white/10">
+                    <img src="{{ url_for('avatar', user_id=pid) }}" alt="{{ user_by_id[pid].name }}"
+                         class="h-4 w-4 rounded-full object-cover ring-1 ring-white/10 bg-white/5">
+                    <span>{{ user_by_id[pid].name }}</span>
+                  </span>
+                {% endfor %}
+              </div>
+            </div></div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card rounded-3xl p-6 max-w-xl mx-auto text-center">
+  <h1 class="text-2xl font-semibold">{{ t('verify.title') }}</h1>
+  <p class="mt-2 text-sm text-slate-300">{{ t('verify.subtitle', email=current_user.email) }}</p>
+  <p class="mt-2 text-xs text-slate-400">{{ t('verify.help') }}</p>
+
+  <div class="mt-6 space-y-3">
+    <form method="post" action="{{ url_for('resend_verification') }}">
+      <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition font-semibold">
+        {{ t('verify.resend_button') }}
+      </button>
+    </form>
+    <a class="inline-flex items-center justify-center w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition font-semibold"
+       href="{{ url_for('logout') }}">
+      {{ t('verify.logout_button') }}
+    </a>
+  </div>
+</div>
+{% endblock %}

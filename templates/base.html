@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="{{ 'ckb' if lang == 'ku' else 'en' }}" dir="{{ 'rtl' if lang == 'ku' else 'ltr' }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title or t('app.name') }}</title>
+
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon.png') }}">
+
+  <script>
+    (function () {
+      const stored = localStorage.getItem('theme');
+      if (stored === 'light' || stored === 'dark') {
+        document.documentElement.setAttribute('data-theme', stored);
+      }
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      font-family: "Vazirmatn", "Noto Naskh Arabic", "Noto Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    .card {
+      backdrop-filter: blur(10px);
+      background: rgba(15, 23, 42, .55);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .header-shell {
+      backdrop-filter: blur(10px);
+      background: rgba(15, 23, 42, .35);
+      border: 1px solid rgba(255,255,255,.04);
+    }
+    #appHeader {
+      transition: border-radius .25s ease, box-shadow .25s ease;
+    }
+    .header-shell.docked {
+      border-top-left-radius: 0 !important;
+      border-top-right-radius: 0 !important;
+      border-bottom-left-radius: 1.5rem !important;
+      border-bottom-right-radius: 1.5rem !important;
+    }
+    .soft {
+      background: rgba(2, 6, 23, .35);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .input {
+      background: rgba(2, 6, 23, .35);
+      border: 1px solid rgba(255,255,255,.10);
+      color: rgb(226,232,240);
+      text-align: start;
+    }
+    .input::placeholder { color: rgba(148,163,184,.8); }
+
+    .menu-panel {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      background: rgba(15, 23, 42, 0.97);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
+    }
+    .menu-panel.open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .menu-backdrop {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+    }
+    .menu-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+
+    button {
+      transition: transform .15s ease, filter .15s ease;
+    }
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    :root[data-theme="light"] body {
+      background:
+        radial-gradient(900px circle at 15% 5%, rgba(99, 102, 241, 0.12), transparent 45%),
+        radial-gradient(800px circle at 85% 0%, rgba(236, 72, 153, 0.10), transparent 50%),
+        linear-gradient(135deg, #e2e8f0 0%, #e7e5e4 45%, #f1e7f0 100%) !important;
+      color: #0f172a;
+    }
+    :root[data-theme="light"] .card {
+      background: rgba(226, 232, 240, 0.92);
+      border: 1px solid rgba(15, 23, 42, 0.1);
+    }
+    :root[data-theme="light"] .header-shell {
+      background: rgba(226, 232, 240, 0.8);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+    :root[data-theme="light"] .menu-panel {
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+    }
+    :root[data-theme="light"] .soft {
+      background: rgba(203, 213, 225, 0.7);
+      border: 1px solid rgba(15, 23, 42, 0.1);
+    }
+    :root[data-theme="light"] .input {
+      background: rgba(226, 232, 240, 0.95);
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      color: #0f172a;
+    }
+    :root[data-theme="light"] .input::placeholder { color: rgba(71, 85, 105, 0.75); }
+
+    :root[data-theme="light"] .text-slate-100 { color: #0f172a !important; }
+    :root[data-theme="light"] .text-slate-200 { color: #1e293b !important; }
+    :root[data-theme="light"] .text-slate-300 { color: #334155 !important; }
+    :root[data-theme="light"] .text-slate-400 { color: #475569 !important; }
+
+    :root[data-theme="light"] .bg-white\/5 { background-color: rgba(15, 23, 42, 0.04) !important; }
+    :root[data-theme="light"] .bg-white\/10 { background-color: rgba(15, 23, 42, 0.08) !important; }
+    :root[data-theme="light"] .bg-white\/15 { background-color: rgba(15, 23, 42, 0.12) !important; }
+    :root[data-theme="light"] .bg-black\/30 { background-color: rgba(15, 23, 42, 0.12) !important; }
+    :root[data-theme="light"] .bg-black\/40 { background-color: rgba(15, 23, 42, 0.16) !important; }
+    :root[data-theme="light"] .bg-black\/70 { background-color: rgba(15, 23, 42, 0.45) !important; }
+
+    :root[data-theme="light"] .border-white\/10 { border-color: rgba(15, 23, 42, 0.12) !important; }
+    :root[data-theme="light"] .border-white\/20 { border-color: rgba(15, 23, 42, 0.18) !important; }
+    :root[data-theme="light"] .ring-white\/10 { --tw-ring-color: rgba(15, 23, 42, 0.12) !important; }
+    :root[data-theme="light"] .ring-white\/15 { --tw-ring-color: rgba(15, 23, 42, 0.16) !important; }
+
+    .ltr {
+      direction: ltr;
+      unicode-bidi: embed;
+    }
+    .text-start { text-align: start; }
+    .text-end { text-align: end; }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-slate-100">
+  {% set ep = request.endpoint or "" %}
+    {% set is_auth_page = ep in ["login", "register", "forgot_password", "reset_password", "verify_required"] %}
+  <div id="appRoot" class="max-w-6xl mx-auto px-4 {% if is_auth_page %}pt-0 pb-6{% else %}py-6{% endif %}">
+    {% set next_lang = "en" if lang == "ku" else "ku" %}
+    <header id="appHeader" class="sticky top-0 z-50 {% if is_auth_page %}px-4 py-6{% else %}header-shell rounded-3xl px-4 py-3 sm:px-6{% endif %}">
+      <div class="{% if is_auth_page %}flex flex-col items-center text-center gap-3{% else %}flex flex-col gap-4 sm:grid sm:grid-cols-[auto,1fr,auto] sm:items-center{% endif %}">
+        {% if is_auth_page %}
+          <div class="flex items-center justify-center gap-3">
+            <div class="h-10 w-10 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10">
+              <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-cover">
+            </div>
+            <div class="text-xl font-semibold leading-tight">Jard</div>
+          </div>
+        {% else %}
+          <div class="flex items-center justify-between w-full sm:contents">
+            <a href="{{ url_for('dashboard') }}" class="flex items-center justify-start gap-3 text-start sm:col-start-1 sm:row-start-1">
+              <div class="h-10 w-10 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-cover">
+              </div>
+              <div class="text-xl font-semibold leading-tight">Jard</div>
+            </a>
+            {% if current_user.is_authenticated and not is_auth_page %}
+              <div class="flex justify-center sm:justify-end relative sm:col-start-3 sm:row-start-1 sm:justify-self-end">
+                <button id="menuButton"
+                        class="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/15 transition"
+                        aria-expanded="false" aria-controls="menuPanel">
+                  <span class="sr-only">{{ t('menu.open') }}</span>
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                  </svg>
+                </button>
+
+                <div id="menuPanel" class="menu-panel absolute {{ 'left-0' if lang == 'ku' else 'right-0' }} top-full mt-2 w-64 card rounded-3xl p-3 z-50">
+                  <div class="flex flex-col gap-2">
+                    <a href="{{ url_for('profile') }}"
+                       class="w-full px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold inline-flex items-center gap-3">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 21a8 8 0 0 0-16 0"/>
+                        <circle cx="12" cy="8" r="4"/>
+                      </svg>
+                      {{ t('menu.profile') }}
+                    </a>
+
+                    <button type="button" id="themeToggle" data-theme-toggle
+                            class="w-full px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold inline-flex items-center gap-3">
+                      <svg id="themeIconMoon" class="h-4 w-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+                      </svg>
+                      <svg id="themeIconSun" class="h-4 w-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="4"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m14.95 6.95-1.41-1.41M7.46 7.46 6.05 6.05m12.9 0-1.41 1.41M7.46 16.54l-1.41 1.41"/>
+                      </svg>
+                      <span id="themeToggleLabel">{{ t('menu.switch_theme') }}</span>
+                    </button>
+
+                    <form method="post" action="{{ url_for('set_language') }}">
+                      <input type="hidden" name="lang" value="{{ next_lang }}">
+                      <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}">
+                      <button type="submit"
+                              class="w-full px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold inline-flex items-center gap-3">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c4.418 0 8 3.582 8 8 0 3.98-2.91 7.28-6.73 7.88M12 3C7.582 3 4 6.582 4 11c0 3.98 2.91 7.28 6.73 7.88M12 3v16M4 11h16"/>
+                        </svg>
+                        {{ t('menu.language_to_en') if lang == 'ku' else t('menu.language_to_ku') }}
+                      </button>
+                    </form>
+
+                    <form method="post" action="{{ url_for('logout') }}">
+                      <button class="w-full px-4 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-sm font-semibold text-white inline-flex items-center gap-3">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M10 17l5-5-5-5"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H3"/>
+                        </svg>
+                        {{ t('menu.logout') }}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if current_user.is_authenticated and not is_auth_page %}
+          {% set link_base = "px-3 py-2 rounded-xl transition" %}
+          {% set active = "bg-white/10" %}
+          {% set inactive = "hover:bg-white/10" %}
+          <nav id="topNav" class="w-full flex flex-nowrap overflow-x-auto no-scrollbar items-center gap-2 text-sm whitespace-nowrap justify-center px-1 sm:col-start-2 sm:row-start-1">
+            {% if has_household %}
+              <a class="{{ link_base }} {{ active if ep=='dashboard' else inactive }}" href="{{ url_for('dashboard') }}">{{ t('nav.dashboard') }}</a>
+              <a class="{{ link_base }} {{ active if ep=='expenses' else inactive }}" href="{{ url_for('expenses') }}">{{ t('nav.expenses') }}</a>
+              <a class="{{ link_base }} {{ active if ep=='household' else inactive }}" href="{{ url_for('household') }}">{{ t('nav.household') }}</a>
+              <a class="{{ link_base }} {{ active if ep=='archive' else inactive }}" href="{{ url_for('archive') }}">{{ t('nav.archive') }}</a>
+            {% endif %}
+          </nav>
+        {% endif %}
+      </div>
+    </header>
+
+    <div id="menuBackdrop" class="menu-backdrop fixed inset-0 bg-black/40 z-40"></div>
+
+    <div id="flashMessages">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mt-5 space-y-2 text-center">
+          {% for category, message in messages %}
+            {% set bg = "bg-emerald-500/15 ring-emerald-400/20" if category=="success" else
+                        "bg-rose-500/15 ring-rose-400/20" if category=="error" else
+                        "bg-sky-500/15 ring-sky-400/20" %}
+            <div class="px-4 py-3 rounded-2xl ring-1 {{ bg }}">
+              <div class="text-sm">{{ message }}</div>
+            </div>
+          {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <main id="appMain" class="mt-6 flex flex-col items-center">
+      <div class="w-full">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function confirmAction(msg) {
+      return confirm(msg || "{{ t('common.confirm_action') }}");
+    }
+
+    (function () {
+      function syncHeaderDock() {
+        const header = document.getElementById('appHeader');
+        if (!header || !header.classList.contains('header-shell')) return;
+        const rect = header.getBoundingClientRect();
+        const shouldDock = rect.top <= 0.5;
+        header.classList.toggle('docked', shouldDock);
+      }
+
+      syncHeaderDock();
+      window.addEventListener('scroll', () => {
+        window.requestAnimationFrame(syncHeaderDock);
+      }, { passive: true });
+
+      const root = document.documentElement;
+
+      function currentTheme() {
+        return root.getAttribute('data-theme') || 'dark';
+      }
+
+      function syncThemeToggle() {
+        const toggle = document.getElementById('themeToggle');
+        const label = document.getElementById('themeToggleLabel');
+        const iconSun = document.getElementById('themeIconSun');
+        const iconMoon = document.getElementById('themeIconMoon');
+        if (!toggle || !label) return;
+        const active = currentTheme();
+        toggle.setAttribute('aria-pressed', active === 'dark' ? 'true' : 'false');
+        if (active === 'dark') {
+          label.textContent = "{{ t('menu.switch_to_light') }}";
+          if (iconSun) iconSun.classList.remove('hidden');
+          if (iconMoon) iconMoon.classList.add('hidden');
+        } else {
+          label.textContent = "{{ t('menu.switch_to_dark') }}";
+          if (iconSun) iconSun.classList.add('hidden');
+          if (iconMoon) iconMoon.classList.remove('hidden');
+        }
+      }
+
+      function setTheme(theme) {
+        root.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        syncThemeToggle();
+      }
+
+      function getMenuEls() {
+        return {
+          button: document.getElementById('menuButton'),
+          panel: document.getElementById('menuPanel'),
+          backdrop: document.getElementById('menuBackdrop'),
+        };
+      }
+
+      function openMenu() {
+        const { button, panel, backdrop } = getMenuEls();
+        if (!button || !panel) return;
+        panel.classList.add('open');
+        if (backdrop) backdrop.classList.add('open');
+        button.setAttribute('aria-expanded', 'true');
+      }
+
+      function closeMenu() {
+        const { button, panel, backdrop } = getMenuEls();
+        if (!button || !panel) return;
+        panel.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('open');
+        button.setAttribute('aria-expanded', 'false');
+      }
+
+      function toggleMenu() {
+        const { panel } = getMenuEls();
+        if (!panel) return;
+        if (panel.classList.contains('open')) closeMenu();
+        else openMenu();
+      }
+
+      document.addEventListener('click', (e) => {
+        const themeBtn = e.target.closest ? e.target.closest('[data-theme-toggle]') : null;
+        if (themeBtn) {
+          const next = currentTheme() === 'dark' ? 'light' : 'dark';
+          setTheme(next);
+          return;
+        }
+
+        const menuBtn = e.target.closest ? e.target.closest('#menuButton') : null;
+        if (menuBtn) {
+          toggleMenu();
+          return;
+        }
+
+        const { panel } = getMenuEls();
+        if (panel && panel.classList.contains('open')) {
+          const inside = e.target.closest ? e.target.closest('#menuPanel') : null;
+          if (!inside) closeMenu();
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeMenu();
+      });
+
+      window.syncMenuUI = function () {
+        syncThemeToggle();
+        closeMenu();
+        syncHeaderDock();
+      };
+
+      if (!root.getAttribute('data-theme')) {
+        root.setAttribute('data-theme', 'dark');
+      }
+      syncThemeToggle();
+    })();
+
+    // -----------------------------
+    // SPA-like navigation for the top tabs (Dashboard / Expenses / etc.)
+    // Prevents full-page refreshes when switching between tabs.
+    // -----------------------------
+    (function () {
+      const nav = document.getElementById('topNav');
+      const root = document.getElementById('appRoot');
+      if (!nav || !root || !window.fetch || !window.history || !window.DOMParser) return;
+
+      const loadedScriptSrc = new Set();
+
+      function sameOrigin(url) {
+        try {
+          const u = new URL(url, window.location.href);
+          return u.origin === window.location.origin;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function isModifiedClick(e) {
+        return e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0;
+      }
+
+      async function loadExternalScript(src) {
+        if (!src) return;
+        if (loadedScriptSrc.has(src)) return;
+        loadedScriptSrc.add(src);
+
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.async = false;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      async function runScriptsInOrder(scripts) {
+        for (const s of scripts) {
+          const src = s.getAttribute('src');
+          if (src) {
+            await loadExternalScript(new URL(src, window.location.href).toString());
+          } else {
+            const inline = document.createElement('script');
+            // Preserve type if present
+            const t = s.getAttribute('type');
+            if (t) inline.type = t;
+            inline.textContent = s.textContent || '';
+            document.body.appendChild(inline);
+            // Remove immediately to avoid DOM bloat; it already executed.
+            inline.remove();
+          }
+        }
+      }
+
+      function extractAndRemoveScripts(container) {
+        if (!container) return [];
+        const scripts = Array.from(container.querySelectorAll('script'));
+        for (const s of scripts) s.remove();
+        return scripts;
+      }
+
+      function swapFromDoc(doc) {
+        const newHeader = doc.getElementById('appHeader');
+        const newFlash = doc.getElementById('flashMessages');
+        const newMain = doc.getElementById('appMain');
+
+        const curHeader = document.getElementById('appHeader');
+        const curFlash = document.getElementById('flashMessages');
+        const curMain = document.getElementById('appMain');
+
+        if (newHeader && curHeader) curHeader.replaceWith(newHeader);
+        if (newFlash && curFlash) curFlash.replaceWith(newFlash);
+        if (newMain && curMain) curMain.replaceWith(newMain);
+        if (window.syncMenuUI) window.syncMenuUI();
+      }
+
+      async function navigate(url, { push = true } = {}) {
+        const target = new URL(url, window.location.href);
+
+        // If only the hash changes, let the browser handle it.
+        if (target.pathname === window.location.pathname && target.search === window.location.search) {
+          if (push) window.history.pushState({}, '', target.href);
+          if (target.hash) {
+            const el = document.getElementById(target.hash.slice(1));
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }
+          return;
+        }
+
+        let res;
+        try {
+          res = await fetch(target.href, {
+            method: 'GET',
+            headers: { 'X-Requested-With': 'fetch' },
+            credentials: 'same-origin'
+          });
+        } catch (_) {
+          window.location.href = target.href;
+          return;
+        }
+
+        // If server redirects (e.g. not logged in), fall back to normal navigation.
+        if (!res.ok || res.redirected) {
+          window.location.href = res.url || target.href;
+          return;
+        }
+
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+
+        // Update title
+        const title = doc.querySelector('title');
+        if (title && title.textContent) document.title = title.textContent;
+
+        // Extract scripts from new main BEFORE swapping (scripts inserted via innerHTML won't run).
+        const newMain = doc.getElementById('appMain');
+        const scripts = extractAndRemoveScripts(newMain);
+
+        // Swap header/flash/main
+        swapFromDoc(doc);
+
+        if (push) window.history.pushState({}, '', target.href);
+
+        // Scroll to top like a real navigation.
+        // Use 'auto' (valid value); some browsers ignore unknown behavior values.
+        window.scrollTo({ top: 0, behavior: 'auto' });
+
+        // Run any scripts that were part of the new page.
+        await runScriptsInOrder(scripts);
+      }
+
+      document.addEventListener('click', (e) => {
+        const a = e.target && e.target.closest ? e.target.closest('#topNav a, #menuPanel a') : null;
+        if (!a) return;
+        if (a.target && a.target !== '_self') return;
+        if (isModifiedClick(e)) return;
+        const href = a.getAttribute('href');
+        if (!href || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+        if (!sameOrigin(href)) return;
+        e.preventDefault();
+        navigate(href, { push: true });
+      });
+
+      window.addEventListener('popstate', () => {
+        navigate(window.location.href, { push: false });
+      });
+
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="flex flex-col items-center text-center gap-3">
+  <h1 class="text-2xl font-semibold">{{ t('archive.title') }}</h1>
+
+  <div class="flex flex-col sm:flex-row gap-2 items-center justify-center">
+    <form method="get" action="{{ url_for('archive') }}" class="flex flex-col sm:flex-row gap-2 items-center justify-center">
+    <select id="sortSel" name="sort" class="px-4 py-2 rounded-2xl input">
+      <option value="month" {% if sort=='month' %}selected{% endif %}>{{ t('archive.sort_month') }}</option>
+      <option value="settle" {% if sort=='settle' %}selected{% endif %}>{{ t('archive.sort_settle') }}</option>
+    </select>
+
+    <select id="monthSel" name="month" class="px-4 py-2 rounded-2xl input {% if sort!='month' %}hidden{% endif %}">
+      <option value="" {% if not selected_month %}selected{% endif %}>{{ t('archive.all_months') }}</option>
+      {% for m in months %}
+        <option value="{{ m }}" {% if selected_month==m %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+
+    <select id="settleSel" name="settle" class="px-4 py-2 rounded-2xl input {% if sort!='settle' %}hidden{% endif %}">
+      <option value="" {% if not selected_settle %}selected{% endif %}>{{ t('archive.all_settles') }}</option>
+      {% for s in settles %}
+        <option value="{{ s.id }}" {% if selected_settle==s.id %}selected{% endif %}>{{ s.label }}</option>
+      {% endfor %}
+    </select>
+
+    <button class="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 text-sm">{{ t('common.filter') }}</button>
+    </form>
+
+  </div>
+</div>
+
+<!-- Settle modal (password confirmation) -->
+<div id="settleModal" class="fixed inset-0 hidden items-center justify-center p-4 z-50">
+  <div id="settleBackdrop" class="absolute inset-0 bg-black/70"></div>
+
+  <div class="relative w-full max-w-md card rounded-3xl p-6 text-start">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="text-sm text-slate-300">{{ t('archive.confirm_action') }}</div>
+        <h2 class="mt-1 text-xl font-semibold">{{ t('archive.settle_active') }}</h2>
+        <div class="mt-1 text-xs text-slate-300">
+          {{ t('archive.settle_help') }}
+        </div>
+      </div>
+      <button type="button" id="closeSettleModal"
+              class="px-2 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-xs">{{ t('common.cancel') }}</button>
+    </div>
+
+    <form class="mt-5 space-y-3" method="post" action="{{ url_for('settle') }}" id="settleForm">
+      <div>
+        <label class="text-sm text-slate-200">{{ t('archive.enter_password') }}</label>
+        <input id="settlePassword" name="password" type="password" required
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-rose-400"
+               placeholder="{{ t('common.password_placeholder') }}" />
+        <div class="mt-1 text-[11px] text-slate-400">
+          {{ t('archive.password_help') }}
+        </div>
+      </div>
+
+      <div class="flex gap-2 justify-end">
+        <button type="button" id="cancelSettle"
+                class="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold">
+          {{ t('common.cancel') }}
+        </button>
+        <button class="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-sm font-semibold">
+          {{ t('archive.confirm_settle') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="mt-6 card rounded-3xl overflow-hidden">
+  <div class="p-5 sm:p-6 text-center border-b border-white/10">
+    <div class="text-sm text-slate-300">{{ t('archive.total_archived') }}</div>
+    <div class="mt-1 text-2xl font-black text-slate-100"><span class="ltr">{{ total_iqd|iqd }}</span></div>
+    {% set expense_label = t('archive.expense_count') %}
+    {% if lang == 'en' and archived|length != 1 %}
+      {% set expense_label = expense_label ~ 's' %}
+    {% endif %}
+    <div class="mt-1 text-xs text-slate-400">{{ archived|length }} {{ expense_label }}</div>
+  </div>
+
+  {% if archived|length == 0 %}
+    <div class="p-6 text-center text-slate-200">{{ t('archive.no_archived') }}</div>
+  {% else %}
+    <ul class="divide-y divide-white/10">
+      {% for e in archived %}
+        <li class="px-4 py-3 sm:px-5 sm:py-4 hover:bg-white/5 transition">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="font-semibold text-sm sm:text-base truncate">{{ e.title }}</div>
+              <div class="mt-1 text-[11px] text-slate-300">
+                <span class="ltr">{{ e.expense_date }}</span> - {{ user_by_id[e.payer_id].name }}
+              </div>
+
+              <div class="mt-2 flex flex-wrap gap-1">
+                {% set pids = parts_map.get(e.id, []) %}
+                {% for pid in pids %}
+                  <span class="px-1.5 py-0.5 text-[11px] rounded-xl bg-white/5 border border-white/10">
+                    {{ user_by_id[pid].name }}
+                  </span>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="shrink-0 text-end leading-tight">
+              <div class="text-base sm:text-lg font-black text-slate-100"><span class="ltr">{{ e.amount_iqd|iqd }}</span></div>
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>
+
+<div class="mt-6 card rounded-3xl p-5 text-center w-full max-w-lg mx-auto">
+  <div class="text-sm text-slate-300">{{ t('archive.danger_zone') }}</div>
+  <div class="mt-2 text-lg font-semibold text-slate-100">{{ t('archive.settle_active') }}</div>
+  <div class="mt-1 text-xs text-slate-300">{{ t('archive.settle_help') }}</div>
+  <button type="button" id="openSettleModal"
+          class="mt-4 px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-sm font-semibold">
+    {{ t('archive.settle_button') }}
+  </button>
+</div>
+
+<script>
+  (function () {
+    const sortSel = document.getElementById('sortSel');
+    const monthSel = document.getElementById('monthSel');
+    const settleSel = document.getElementById('settleSel');
+    if (!sortSel || !monthSel || !settleSel) return;
+
+    function sync() {
+      const v = (sortSel.value || 'month');
+      if (v === 'settle') {
+        settleSel.classList.remove('hidden');
+        monthSel.classList.add('hidden');
+      } else {
+        monthSel.classList.remove('hidden');
+        settleSel.classList.add('hidden');
+      }
+    }
+    sortSel.addEventListener('change', sync);
+    sync();
+  })();
+
+  (function () {
+    const openBtn = document.getElementById('openSettleModal');
+    const modal = document.getElementById('settleModal');
+    const backdrop = document.getElementById('settleBackdrop');
+    const closeBtn = document.getElementById('closeSettleModal');
+    const cancelBtn = document.getElementById('cancelSettle');
+    const pass = document.getElementById('settlePassword');
+
+    if (!openBtn || !modal) return;
+
+    function open() {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      // Reset password field every time
+      if (pass) {
+        pass.value = '';
+        setTimeout(() => pass.focus(), 50);
+      }
+      document.body.style.overflow = 'hidden';
+    }
+
+    function close() {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.style.overflow = '';
+    }
+
+    openBtn.addEventListener('click', open);
+    if (backdrop) backdrop.addEventListener('click', close);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
+    });
+  })();
+</script>
+
+{% endblock %}

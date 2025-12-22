@@ -1,0 +1,10 @@
+Hello {{ user.name or "there" }},
+
+Please verify your Jard email by clicking the link below. This link expires in {{ ttl_hours }} hours.
+
+{{ verify_url }}
+
+If you did not create a Jard account, you can ignore this email.
+
+Thanks,
+Jard
