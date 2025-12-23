@@ -1,36 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card rounded-3xl p-6 max-w-xl mx-auto text-center">
-  <h1 class="text-2xl font-semibold">{{ t('login.title') }}</h1>
-
-  <form class="mt-6 space-y-4" method="post" action="{{ url_for('login_post', next=request.args.get('next')) }}">
-    {% if request.args.get('next') %}
-      <input type="hidden" name="next" value="{{ request.args.get('next') }}">
-    {% endif %}
-
-    <div class="text-start">
-      <label class="text-sm text-slate-200">{{ t('login.email_label') }}</label>
-      <input name="email" type="email" required autocomplete="username" autocapitalize="none" spellcheck="false"
-             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
-             placeholder="{{ t('login.email_placeholder') }}" dir="ltr" />
+<div class="flex flex-col items-center gap-6">
+  <div class="flex flex-col items-center gap-3 text-center">
+    <div class="h-12 w-12 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-cover">
     </div>
+    <div class="text-xl font-semibold leading-tight">{{ t('app.name') }}</div>
+  </div>
 
-    <div class="text-start">
-      <label class="text-sm text-slate-200">{{ t('login.password_label') }}</label>
-      <input name="password" type="password" required autocomplete="current-password"
-             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
-             placeholder="{{ t('login.password_placeholder') }}" />
+  <div class="card rounded-3xl p-6 w-full max-w-xl text-center">
+    <h1 class="text-2xl font-semibold">{{ t('login.title') }}</h1>
+
+    <form class="mt-6 space-y-4" method="post" action="{{ url_for('login_post', next=request.args.get('next')) }}">
+      {% if request.args.get('next') %}
+        <input type="hidden" name="next" value="{{ request.args.get('next') }}">
+      {% endif %}
+
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('login.email_label') }}</label>
+        <input name="email" type="email" required autocomplete="username" autocapitalize="none" spellcheck="false"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
+               placeholder="{{ t('login.email_placeholder') }}" dir="ltr" />
+      </div>
+
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('login.password_label') }}</label>
+        <input name="password" type="password" required autocomplete="current-password"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
+               placeholder="{{ t('login.password_placeholder') }}" />
+      </div>
+
+      <button class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
+        {{ t('login.button') }}
+      </button>
+    </form>
+
+    <div class="mt-5 text-sm text-slate-300 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+      <a class="text-violet-300 font-semibold" href="{{ url_for('forgot_password') }}">{{ t('login.forgot_password') }}</a>
+      <a class="text-violet-300 font-semibold"
+         href="{{ url_for('register', next=request.args.get('next')) }}">{{ t('login.create_account') }}</a>
     </div>
-
-    <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition font-semibold">
-      {{ t('login.button') }}
-    </button>
-  </form>
-
-  <div class="mt-5 text-sm text-slate-300 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-    <a class="text-indigo-300 font-semibold" href="{{ url_for('forgot_password') }}">{{ t('login.forgot_password') }}</a>
-    <a class="text-indigo-300 font-semibold"
-       href="{{ url_for('register', next=request.args.get('next')) }}">{{ t('login.create_account') }}</a>
   </div>
 </div>
 {% endblock %}

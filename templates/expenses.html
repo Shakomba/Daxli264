@@ -14,14 +14,14 @@
       <div class="text-start">
         <label class="text-sm text-slate-200">{{ t('expenses.title_label') }}</label>
         <input name="title" required
-               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
                placeholder="{{ t('expenses.title_placeholder') }}" />
       </div>
 
       <div class="text-start">
         <label class="text-sm text-slate-200">{{ t('expenses.amount_label') }}</label>
         <input name="amount_iqd" type="number" required min="250" step="250"
-               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
                placeholder="250" dir="ltr" />
         <div class="mt-1 text-xs text-slate-400">{{ t('expenses.amount_help') }}</div>
       </div>
@@ -29,7 +29,7 @@
       <div class="text-start">
         <label class="text-sm text-slate-200">{{ t('expenses.date_label') }}</label>
         <input name="expense_date" type="date" value="{{ today }}"
-               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400 ltr" />
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400 ltr" />
       </div>
 
       <div class="text-start">
@@ -55,7 +55,7 @@
         </div>
       </div>
 
-      <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition font-semibold">
+      <button class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
         {{ t('expenses.add_button') }}
       </button>
     </form>
@@ -71,7 +71,7 @@
       <div class="space-y-3">
         {% for e in expenses %}
           {% set mine = (e.payer_id == current_user.id) %}
-          <div class="soft rounded-3xl p-4 sm:p-5 text-center {% if mine %}ring-1 ring-inset ring-indigo-400/25 bg-indigo-500/10{% endif %}">
+          <div class="soft rounded-3xl p-4 sm:p-5 text-center {% if mine %}ring-1 ring-inset ring-violet-400/25 bg-violet-500/10{% endif %}">
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
               <div class="min-w-0">
                 <div class="font-semibold text-lg truncate">
@@ -92,9 +92,10 @@
 
                 <div class="h-9 flex items-center justify-center">
                   {% if mine %}
-                    <form method="post" action="{{ url_for('delete_expense', expense_id=e.id) }}"
-                          onsubmit="return confirmAction('{{ t('expenses.delete_confirm') | e }}');" class="m-0">
-                      <button class="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-xs font-semibold text-white">
+                    <form method="post" action="{{ url_for('delete_expense', expense_id=e.id) }}" class="m-0">
+                      <button type="submit"
+                              onclick="return confirmAction('{{ t('expenses.delete_confirm') | e }}');"
+                              class="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-xs font-semibold text-white">
                         {{ t('expenses.delete_button') }}
                       </button>
                     </form>

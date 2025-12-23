@@ -59,6 +59,10 @@ TRANSLATIONS = {
         "register.password_label": "Password",
         "register.confirm_password_label": "Confirm password",
         "register.password_help": "Use at least {min_len} characters, including a letter and a number.",
+        "register.password_rules_title": "Password requirements:",
+        "register.password_rule_length": "At least {min_len} characters",
+        "register.password_rule_letter": "At least 1 letter (A–Z)",
+        "register.password_rule_number": "At least 1 number (0–9)",
         "register.button": "Create account",
         "register.have_account": "Already have an account?",
         "register.name_placeholder": "Name",
@@ -459,8 +463,9 @@ def create_app():
     app.config["REMEMBER_COOKIE_HTTPONLY"] = True
     app.config["REMEMBER_COOKIE_SAMESITE"] = os.environ.get("REMEMBER_COOKIE_SAMESITE", "Lax")
     app.config["REMEMBER_COOKIE_SECURE"] = os.environ.get("REMEMBER_COOKIE_SECURE", "0") == "1"
+    app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=int(os.environ.get("REMEMBER_COOKIE_DAYS", "30")))
     app.config["SECURITY_TOKEN_SECRET"] = os.environ.get("SECURITY_TOKEN_SECRET", app.config["SECRET_KEY"])
-    app.config["PASSWORD_MIN_LENGTH"] = int(os.environ.get("PASSWORD_MIN_LENGTH", "10"))
+    app.config["PASSWORD_MIN_LENGTH"] = int(os.environ.get("PASSWORD_MIN_LENGTH", "8"))
     app.config["PASSWORD_REQUIRE_DIGIT"] = os.environ.get("PASSWORD_REQUIRE_DIGIT", "1") == "1"
     app.config["PASSWORD_REQUIRE_LETTER"] = os.environ.get("PASSWORD_REQUIRE_LETTER", "1") == "1"
     app.config["PASSWORD_REQUIRE_UPPER"] = os.environ.get("PASSWORD_REQUIRE_UPPER", "0") == "1"
@@ -794,7 +799,8 @@ def create_app():
         db.session.commit()
         send_verification_email(u, verify_token)
         flash(t("flash.verification_email_sent"), "success")
-        login_user(u)
+        session.permanent = True
+        login_user(u, remember=True)
         if u.email_verified is not True:
             if next_url:
                 session["post_verify_next"] = next_url
@@ -822,7 +828,8 @@ def create_app():
                 check_password_hash(dummy_password_hash, password)
             flash(t("flash.invalid_login"), "error")
             return redirect(url_for("login", next=next_url) if next_url else url_for("login"))
-        login_user(u)
+        session.permanent = True
+        login_user(u, remember=True)
         if u.email_verified is not True:
             if next_url:
                 session["post_verify_next"] = next_url

@@ -8,7 +8,7 @@
       <div class="text-start">
         <label class="text-sm text-slate-200">{{ t('setup.household_name_label') }}</label>
         <input name="household_name" type="text"
-               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
                placeholder="{{ t('setup.household_name_placeholder') }}" />
       </div>
       <button class="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 transition font-semibold">
@@ -24,10 +24,10 @@
       <div class="text-start">
         <label class="text-sm text-slate-200">{{ t('setup.join_code_label') }}</label>
         <input id="joinCodeInput" name="join_code" type="text" required
-               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400 uppercase tracking-widest"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400 uppercase tracking-widest"
                placeholder="{{ t('setup.join_code_placeholder') }}" dir="ltr" />
       </div>
-      <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition font-semibold">
+      <button class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
         {{ t('setup.join_button') }}
       </button>
     </form>
@@ -101,7 +101,7 @@
            class="mt-2 rounded-2xl bg-black/30 border border-white/10 px-4 py-3 text-center font-mono tracking-widest ltr"></div>
       <form id="qrJoinForm" class="mt-4 space-y-3" method="post" action="{{ url_for('join_household') }}">
         <input id="qrJoinCodeInput" name="join_code" type="hidden" />
-        <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition text-sm font-semibold">
+        <button class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition text-sm font-semibold">
           {{ t('setup.qr_join_button') }}
         </button>
         <button type="button" id="qrRescan"

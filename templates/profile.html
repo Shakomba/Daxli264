@@ -13,8 +13,9 @@
           enctype="multipart/form-data">
       <input type="hidden" name="next" value="{{ request.path }}">
 
-      <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
-        <img src="{{ url_for('avatar', user_id=current_user.id) }}" alt="{{ t('profile.picture_alt') }}"
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <img id="profileAvatarPreview" src="{{ url_for('avatar', user_id=current_user.id) }}"
+             alt="{{ t('profile.picture_alt') }}"
              class="h-16 w-16 rounded-full object-cover ring-1 ring-white/10 bg-white/5">
         <label class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold cursor-pointer">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -22,7 +23,7 @@
             <circle cx="12" cy="13" r="3"/>
           </svg>
           {{ t('profile.upload_photo') }}
-          <input type="file" name="avatar" accept="image/*" class="sr-only">
+          <input id="avatarInput" type="file" name="avatar" accept="image/*" class="sr-only">
         </label>
       </div>
 
@@ -30,12 +31,12 @@
         <div>
           <label class="text-sm text-slate-200">{{ t('register.name_label') }}</label>
           <input name="name" type="text" required value="{{ current_user.name }}"
-                 class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                 class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400">
         </div>
         <div>
           <label class="text-sm text-slate-200">{{ t('register.email_label') }}</label>
           <input name="email" type="email" required value="{{ current_user.email }}"
-                 class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400" dir="ltr">
+                 class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400" dir="ltr">
         </div>
       </div>
 
@@ -45,24 +46,24 @@
           <div class="md:col-span-2">
             <label class="text-sm text-slate-200">{{ t('profile.current_password') }}</label>
             <input name="current_password" type="password"
-                   class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                   class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
                    placeholder="{{ t('profile.current_password_placeholder') }}">
           </div>
           <div>
             <label class="text-sm text-slate-200">{{ t('profile.new_password') }}</label>
             <input name="new_password" type="password"
-                   class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                   class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400">
           </div>
           <div>
             <label class="text-sm text-slate-200">{{ t('profile.confirm_new_password') }}</label>
             <input name="confirm_password" type="password"
-                   class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                   class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400">
           </div>
         </div>
         <div class="mt-2 text-xs text-slate-300">{{ t('profile.password_help') }}</div>
       </div>
 
-      <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition font-semibold">
+      <button class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
         {{ t('profile.save_changes') }}
       </button>
     </form>
@@ -87,4 +88,21 @@
     </form>
   </div>
 </div>
+
+<script>
+  (function () {
+    const input = document.getElementById('avatarInput');
+    const preview = document.getElementById('profileAvatarPreview');
+    if (!input || !preview || !window.URL) return;
+
+    let objectUrl = null;
+    input.addEventListener('change', () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      objectUrl = URL.createObjectURL(file);
+      preview.src = objectUrl;
+    });
+  })();
+</script>
 {% endblock %}

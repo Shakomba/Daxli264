@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="format-detection" content="telephone=no,email=no,address=no" />
+  <meta name="theme-color" content="#0A0A0F" />
   <title>{{ title or t('app.name') }}</title>
 
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
@@ -14,6 +15,10 @@
       const stored = localStorage.getItem('theme');
       if (stored === 'light' || stored === 'dark') {
         document.documentElement.setAttribute('data-theme', stored);
+        const themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeMeta) {
+          themeMeta.setAttribute('content', stored === 'light' ? '#e2e8f0' : '#0A0A0F');
+        }
       }
     })();
   </script>
@@ -25,24 +30,59 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
+    :root {
+      --bg: #0A0A0F;
+      --bg-elev-1: #0F1017;
+      --bg-elev-2: #12121B;
+      --bg-elev-3: #171725;
+
+      --border: rgba(255, 255, 255, 0.10);
+      --divider: rgba(255, 255, 255, 0.07);
+
+      --text: #F2F3F7;
+      --text-2: #B7BAC7;
+      --text-3: #7D8196;
+
+      --accent: #8B5CF6;
+      --accent-soft: rgba(139, 92, 246, 0.14);
+      --accent-border: rgba(139, 92, 246, 0.28);
+      --focus: rgba(139, 92, 246, 0.35);
+
+      /* Kept for existing code that references it */
+      --page-bg: var(--bg);
+    }
+    :root[data-theme="light"] {
+      --page-bg: #e2e8f0;
+    }
     html,
     body {
-      background-color: #020617;
+      background-color: var(--page-bg);
     }
     body {
+      background:
+        radial-gradient(900px circle at 50% -20%, rgba(139, 92, 246, 0.10), transparent 55%),
+        linear-gradient(135deg, var(--bg) 0%, var(--bg) 100%);
+      color: var(--text);
       font-family: "Vazirmatn", "Noto Naskh Arabic", "Noto Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
     }
+
+    /* Map common Tailwind text utilities to the palette (dark mode). */
+    .text-slate-100 { color: var(--text) !important; }
+    .text-slate-200 { color: var(--text-2) !important; }
+    .text-slate-300 { color: var(--text-2) !important; }
+    .text-slate-400 { color: var(--text-3) !important; }
     .card {
       backdrop-filter: blur(10px);
-      background: rgba(15, 23, 42, .55);
-      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(18, 18, 27, 0.72);
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
     }
     .header-shell {
       backdrop-filter: blur(10px);
-      background: rgba(15, 23, 42, .35);
-      border: 1px solid rgba(255,255,255,.04);
+      background: rgba(15, 16, 23, 0.70);
+      border: 1px solid rgba(255,255,255,0.08);
     }
-    #appHeader {
+#appHeader {
       transition: border-radius .25s ease, box-shadow .25s ease;
     }
     .header-shell.docked {
@@ -52,33 +92,32 @@
       border-bottom-right-radius: 1.5rem !important;
     }
     .soft {
-      background: rgba(2, 6, 23, .35);
-      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(15, 16, 23, 0.55);
+      border: 1px solid rgba(255,255,255,0.10);
     }
     .input {
-      background: rgba(2, 6, 23, .35);
-      border: 1px solid rgba(255,255,255,.10);
-      color: rgb(226,232,240);
+      background: rgba(18, 18, 27, 0.75);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text);
       text-align: start;
     }
-    .input::placeholder { color: rgba(148,163,184,.8); }
-    a[href^="mailto"],
+    .input::placeholder { color: rgba(183, 186, 199, 0.70); }
+a[href^="mailto"],
     a[x-apple-data-detectors],
     a[x-apple-data-detectors-type="email"] {
       color: inherit !important;
       text-decoration: none !important;
     }
-
     .menu-panel {
       opacity: 0;
       transform: translateY(-8px) scale(0.98);
       pointer-events: none;
       transition: opacity .18s ease, transform .18s ease;
-      background: rgba(15, 23, 42, 0.97);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
+      background: rgba(18, 18, 27, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
     }
-    .menu-panel.open {
+.menu-panel.open {
       opacity: 1;
       transform: translateY(0) scale(1);
       pointer-events: auto;
@@ -113,7 +152,7 @@
     }
     :root[data-theme="light"] html,
     :root[data-theme="light"] body {
-      background-color: #e2e8f0;
+      background-color: var(--page-bg);
     }
     :root[data-theme="light"] .card {
       background: rgba(226, 232, 240, 0.92);
@@ -171,25 +210,29 @@
       right: 0;
       top: 0;
     }
+  
   </style>
 </head>
 
 {% set ep = request.endpoint or "" %}
 {% set is_auth_page = ep in ["login", "register", "forgot_password", "reset_password", "verify_required"] %}
-{% set is_fixed_auth_header = ep in ["login", "register"] %}
+{% set hide_auth_brand = ep in ["login", "register"] %}
+{% set is_fixed_auth_header = ep in ["login", "register"] and not hide_auth_brand %}
 
-<body class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-slate-100{% if is_fixed_auth_header %} auth-fixed-header{% endif %}">
-  <div id="appRoot" class="max-w-6xl mx-auto px-4 {% if is_fixed_auth_header %}pt-24 pb-6{% elif is_auth_page %}pt-0 pb-6{% else %}py-6{% endif %}">
+<body class="min-h-screen text-slate-100{% if is_fixed_auth_header %} auth-fixed-header{% endif %}">
+  <div id="appRoot" class="max-w-6xl mx-auto px-4 {% if hide_auth_brand %}py-6{% elif is_fixed_auth_header %}pt-24 pb-6{% elif is_auth_page %}pt-0 pb-6{% else %}py-6{% endif %}">
     {% set next_lang = "en" if lang == "ku" else "ku" %}
-    <header id="appHeader" class="{% if is_fixed_auth_header %}fixed inset-x-0 top-0{% else %}sticky top-0{% endif %} z-50 {% if is_auth_page %}px-4 py-6{% else %}header-shell rounded-3xl px-4 py-3 sm:px-6{% endif %}">
+    <header id="appHeader" class="{% if is_fixed_auth_header %}fixed inset-x-0 top-0{% else %}sticky top-0{% endif %} z-50 {% if is_auth_page %}{% if hide_auth_brand %}px-0 py-0{% else %}px-4 py-6{% endif %}{% else %}header-shell rounded-3xl px-4 py-3 sm:px-6{% endif %}">
       <div class="{% if is_auth_page %}flex flex-col items-center text-center gap-3{% else %}flex flex-col gap-4 sm:grid sm:grid-cols-[auto,1fr,auto] sm:items-center{% endif %}">
         {% if is_auth_page %}
-          <div class="flex items-center justify-center gap-3">
-            <div class="h-10 w-10 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10">
-              <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-cover">
+          {% if not hide_auth_brand %}
+            <div class="flex items-center justify-center gap-3">
+              <div class="h-10 w-10 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-cover">
+              </div>
+              <div class="text-xl font-semibold leading-tight">Jard</div>
             </div>
-            <div class="text-xl font-semibold leading-tight">Jard</div>
-          </div>
+          {% endif %}
         {% else %}
           <div class="flex items-center justify-between w-full sm:contents">
             <a href="{{ url_for('dashboard') }}" class="flex items-center justify-start gap-3 text-start sm:col-start-1 sm:row-start-1">
@@ -263,7 +306,7 @@
 
         {% if current_user.is_authenticated and not is_auth_page %}
           {% set link_base = "px-3 py-2 rounded-xl transition" %}
-          {% set active = "bg-white/10" %}
+          {% set active = "bg-violet-500/15 ring-1 ring-inset ring-violet-400/20" %}
           {% set inactive = "hover:bg-white/10" %}
           <nav id="topNav" class="w-full flex flex-nowrap overflow-x-auto no-scrollbar items-center gap-2 text-sm whitespace-nowrap justify-start sm:justify-center px-2 sm:px-1 sm:col-start-2 sm:row-start-1">
             {% if has_household %}
@@ -328,6 +371,13 @@
         return root.getAttribute('data-theme') || 'dark';
       }
 
+      function syncThemeColor() {
+        const themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (!themeMeta) return;
+        const theme = currentTheme();
+        themeMeta.setAttribute('content', theme === 'light' ? '#e2e8f0' : '#0A0A0F');
+      }
+
       function syncThemeToggle() {
         const toggle = document.getElementById('themeToggle');
         const label = document.getElementById('themeToggleLabel');
@@ -350,6 +400,7 @@
       function setTheme(theme) {
         root.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
+        syncThemeColor();
         syncThemeToggle();
       }
 
@@ -411,6 +462,7 @@
 
       window.syncMenuUI = function () {
         syncThemeToggle();
+        syncThemeColor();
         closeMenu();
         syncHeaderDock();
       };
@@ -418,6 +470,7 @@
       if (!root.getAttribute('data-theme')) {
         root.setAttribute('data-theme', 'dark');
       }
+      syncThemeColor();
       syncThemeToggle();
     })();
 

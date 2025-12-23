@@ -1,53 +1,252 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card rounded-3xl p-6 max-w-xl mx-auto text-center">
-  <h1 class="text-2xl font-semibold">{{ t('register.title') }}</h1>
-
-  <form class="mt-6 space-y-4" method="post" action="{{ url_for('register_post', next=request.args.get('next')) }}">
-    {% if request.args.get('next') %}
-      <input type="hidden" name="next" value="{{ request.args.get('next') }}">
-    {% endif %}
-
-    <div class="text-start">
-      <label class="text-sm text-slate-200">{{ t('register.name_label') }}</label>
-      <input name="name" type="text" required autocomplete="name"
-             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
-             placeholder="{{ t('register.name_placeholder') }}" />
+<style>
+  .password-invalid {
+    border-color: #FF453A !important;
+    box-shadow: 0 0 0 2px #FF453A !important;
+  }
+  .shake {
+    animation: shake 0.28s ease-in-out;
+  }
+  @keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+  }
+</style>
+<div class="flex flex-col items-center gap-6">
+  <div class="flex flex-col items-center gap-3 text-center">
+    <div class="h-12 w-12 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-cover">
     </div>
+    <div class="text-xl font-semibold leading-tight">{{ t('app.name') }}</div>
+  </div>
 
-    <div class="text-start">
-      <label class="text-sm text-slate-200">{{ t('register.email_label') }}</label>
-      <input name="email" type="email" required autocomplete="email" autocapitalize="none" spellcheck="false"
-             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
-             placeholder="{{ t('register.email_placeholder') }}" dir="ltr" />
-    </div>
+  <div class="card rounded-3xl p-6 w-full max-w-xl text-center">
+    <h1 class="text-2xl font-semibold">{{ t('register.title') }}</h1>
+
+    <form class="mt-6 space-y-4" method="post" action="{{ url_for('register_post', next=request.args.get('next')) }}">
+      {% if request.args.get('next') %}
+        <input type="hidden" name="next" value="{{ request.args.get('next') }}">
+      {% endif %}
+
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('register.name_label') }}</label>
+        <input name="name" type="text" required autocomplete="name"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
+               placeholder="{{ t('register.name_placeholder') }}" />
+      </div>
+
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('register.email_label') }}</label>
+        <input name="email" type="email" required autocomplete="email" autocapitalize="none" spellcheck="false"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
+               placeholder="{{ t('register.email_placeholder') }}" dir="ltr" />
+      </div>
 
     <div class="text-start">
       <label class="text-sm text-slate-200">{{ t('register.password_label') }}</label>
-      <input name="password" type="password" required autocomplete="new-password" minlength="{{ password_min_length }}"
-             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
-             placeholder="{{ t('register.password_placeholder') }}" />
+      <input id="registerPassword" name="password" type="password" required autocomplete="new-password"
+             data-min-length="{{ password_min_length }}"
+             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
+             placeholder="{{ t('register.password_placeholder') }}" aria-describedby="passwordRequirements" />
     </div>
 
     <div class="text-start">
       <label class="text-sm text-slate-200">{{ t('register.confirm_password_label') }}</label>
-      <input name="confirm_password" type="password" required autocomplete="new-password" minlength="{{ password_min_length }}"
-             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-indigo-400"
+      <input id="registerConfirmPassword" name="confirm_password" type="password" required autocomplete="new-password"
+             class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
              placeholder="{{ t('register.password_placeholder') }}" />
     </div>
 
-    <div class="text-xs text-slate-300">
-      {{ t('register.password_help', min_len=password_min_length) }}
+    <div id="passwordRequirements" hidden
+         class="w-full text-start text-sm transition-all duration-200 ease-out opacity-0 max-h-0 scale-95 overflow-hidden pointer-events-none"
+         aria-hidden="true">
+      <div class="text-white font-semibold">
+        {{ t('register.password_rules_title') }}
+      </div>
+      <ul class="mt-2 space-y-1">
+        <li class="password-req flex items-center gap-2 transition-colors duration-200"
+            data-requirement="length" data-met="false">
+          <span class="relative inline-flex h-4 w-4 items-center justify-center">
+            <svg data-icon="check" class="absolute h-4 w-4 opacity-0 scale-75 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l3 3 7-7" />
+            </svg>
+            <svg data-icon="x" class="absolute h-4 w-4 opacity-100 scale-100 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
+            </svg>
+          </span>
+          <span>{{ t('register.password_rule_length', min_len=password_min_length) }}</span>
+        </li>
+        <li class="password-req flex items-center gap-2 transition-colors duration-200"
+            data-requirement="letter" data-met="false">
+          <span class="relative inline-flex h-4 w-4 items-center justify-center">
+            <svg data-icon="check" class="absolute h-4 w-4 opacity-0 scale-75 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l3 3 7-7" />
+            </svg>
+            <svg data-icon="x" class="absolute h-4 w-4 opacity-100 scale-100 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
+            </svg>
+          </span>
+          <span>{{ t('register.password_rule_letter') }}</span>
+        </li>
+        <li class="password-req flex items-center gap-2 transition-colors duration-200"
+            data-requirement="number" data-met="false">
+          <span class="relative inline-flex h-4 w-4 items-center justify-center">
+            <svg data-icon="check" class="absolute h-4 w-4 opacity-0 scale-75 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l3 3 7-7" />
+            </svg>
+            <svg data-icon="x" class="absolute h-4 w-4 opacity-100 scale-100 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
+            </svg>
+          </span>
+          <span>{{ t('register.password_rule_number') }}</span>
+        </li>
+      </ul>
     </div>
 
-    <button class="w-full py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 transition font-semibold">
-      {{ t('register.button') }}
-    </button>
-  </form>
+    <div class="pt-2">
+      <button class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
+        {{ t('register.button') }}
+      </button>
+    </div>
+    </form>
 
-  <div class="mt-4 text-sm text-slate-300">
-    <a class="text-indigo-300 font-semibold"
-       href="{{ url_for('login', next=request.args.get('next')) }}">{{ t('register.have_account') }}</a>
+    <div class="mt-4 text-sm text-slate-300">
+      <a class="text-violet-300 font-semibold"
+         href="{{ url_for('login', next=request.args.get('next')) }}">{{ t('register.have_account') }}</a>
+    </div>
   </div>
 </div>
+
+<script>
+  (function () {
+    const passwordInput = document.getElementById('registerPassword');
+    const confirmInput = document.getElementById('registerConfirmPassword');
+    const panel = document.getElementById('passwordRequirements');
+    if (!passwordInput || !confirmInput || !panel) return;
+
+    const minLength = parseInt(passwordInput.getAttribute('data-min-length') || '8', 10);
+    const items = {
+      length: panel.querySelector('[data-requirement="length"]'),
+      letter: panel.querySelector('[data-requirement="letter"]'),
+      number: panel.querySelector('[data-requirement="number"]'),
+    };
+    const colors = {
+      met: '#32D74B',
+      unmet: '#FF453A',
+    };
+
+    const tests = {
+      letter: (value) => /[A-Za-z]/.test(value),
+      number: (value) => /\d/.test(value),
+      length: (value) => value.length >= minLength,
+    };
+
+    const openClasses = ['opacity-100', 'max-h-40', 'scale-100', 'pointer-events-auto'];
+    const closedClasses = ['opacity-0', 'max-h-0', 'scale-95', 'pointer-events-none'];
+    let panelOpened = false;
+    let showErrors = false;
+
+    function setPanelOpen() {
+      if (panelOpened) return;
+      panelOpened = true;
+      panel.setAttribute('aria-hidden', 'false');
+      if (panel.hasAttribute('hidden')) {
+        panel.removeAttribute('hidden');
+      }
+      window.requestAnimationFrame(() => {
+        panel.classList.remove(...closedClasses);
+        panel.classList.add(...openClasses);
+      });
+    }
+
+    function setRequirementState(el, isMet) {
+      if (!el) return;
+      el.dataset.met = isMet ? 'true' : 'false';
+      el.style.color = isMet ? colors.met : colors.unmet;
+
+      const iconCheck = el.querySelector('[data-icon="check"]');
+      const iconX = el.querySelector('[data-icon="x"]');
+
+      if (iconCheck && iconX) {
+        iconCheck.classList.toggle('opacity-100', isMet);
+        iconCheck.classList.toggle('scale-100', isMet);
+        iconCheck.classList.toggle('opacity-0', !isMet);
+        iconCheck.classList.toggle('scale-75', !isMet);
+
+        iconX.classList.toggle('opacity-100', !isMet);
+        iconX.classList.toggle('scale-100', !isMet);
+        iconX.classList.toggle('opacity-0', isMet);
+        iconX.classList.toggle('scale-75', isMet);
+      }
+    }
+
+    function setInvalidState(isInvalid) {
+      const inputs = [passwordInput, confirmInput];
+      inputs.forEach((el) => {
+        el.classList.toggle('password-invalid', isInvalid);
+      });
+    }
+
+    function triggerShake() {
+      const inputs = [passwordInput, confirmInput];
+      inputs.forEach((el) => {
+        el.classList.remove('shake');
+        void el.offsetWidth;
+        el.classList.add('shake');
+      });
+    }
+
+    function updateRequirements() {
+      const value = passwordInput.value || '';
+      const state = {
+        length: tests.length(value),
+        letter: tests.letter(value),
+        number: tests.number(value),
+      };
+
+      Object.keys(state).forEach((key) => {
+        setRequirementState(items[key], state[key]);
+      });
+
+      const allMet = state.length && state.letter && state.number;
+      if (showErrors) {
+        setInvalidState(!allMet);
+      }
+      return allMet;
+    }
+
+    function handleFocus() {
+      setPanelOpen();
+      updateRequirements();
+    }
+
+    [passwordInput, confirmInput].forEach((el) => {
+      el.addEventListener('focus', handleFocus);
+      el.addEventListener('animationend', () => el.classList.remove('shake'));
+    });
+
+    passwordInput.addEventListener('input', updateRequirements);
+    confirmInput.addEventListener('input', updateRequirements);
+
+    const form = passwordInput.form;
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        setPanelOpen();
+        const allMet = updateRequirements();
+        if (!allMet) {
+          showErrors = true;
+          setInvalidState(true);
+          triggerShake();
+          e.preventDefault();
+        }
+      });
+    }
+
+    updateRequirements();
+  })();
+</script>
 {% endblock %}
