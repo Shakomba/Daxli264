@@ -6,19 +6,19 @@
 
   <div class="flex flex-col sm:flex-row gap-2 items-center justify-center">
     <form method="get" action="{{ url_for('archive') }}" class="flex flex-col sm:flex-row gap-2 items-center justify-center">
-    <select id="sortSel" name="sort" class="px-4 py-2 rounded-2xl input">
+    <select id="sortSel" name="sort" class="w-52 h-11 px-4 rounded-2xl input">
       <option value="month" {% if sort=='month' %}selected{% endif %}>{{ t('archive.sort_month') }}</option>
       <option value="settle" {% if sort=='settle' %}selected{% endif %}>{{ t('archive.sort_settle') }}</option>
     </select>
 
-    <select id="monthSel" name="month" class="px-4 py-2 rounded-2xl input {% if sort!='month' %}hidden{% endif %}">
+    <select id="monthSel" name="month" class="w-52 h-11 px-4 rounded-2xl input {% if sort!='month' %}hidden{% endif %}">
       <option value="" {% if not selected_month %}selected{% endif %}>{{ t('archive.all_months') }}</option>
       {% for m in months %}
         <option value="{{ m }}" {% if selected_month==m %}selected{% endif %}>{{ m }}</option>
       {% endfor %}
     </select>
 
-    <select id="settleSel" name="settle" class="px-4 py-2 rounded-2xl input {% if sort!='settle' %}hidden{% endif %}">
+    <select id="settleSel" name="settle" class="w-52 h-11 px-4 rounded-2xl input {% if sort!='settle' %}hidden{% endif %}">
       <option value="" {% if not selected_settle %}selected{% endif %}>{{ t('archive.all_settles') }}</option>
       {% for s in settles %}
         <option value="{{ s.id }}" {% if selected_settle==s.id %}selected{% endif %}>{{ s.label }}</option>
@@ -31,6 +31,7 @@
   </div>
 </div>
 
+{% if is_owner %}
 <!-- Settle modal (password confirmation) -->
 <div id="settleModal" class="fixed inset-0 hidden items-center justify-center p-4 z-50">
   <div id="settleBackdrop" class="absolute inset-0 bg-black/70"></div>
@@ -71,6 +72,7 @@
     </form>
   </div>
 </div>
+{% endif %}
 
 <div class="mt-6 card rounded-3xl overflow-hidden">
   <div class="p-5 sm:p-6 text-center border-b border-white/10">
@@ -116,6 +118,7 @@
   {% endif %}
 </div>
 
+{% if is_owner %}
 <div class="mt-6 card rounded-3xl p-5 text-center w-full max-w-lg mx-auto">
   <div class="text-sm text-slate-300">{{ t('archive.danger_zone') }}</div>
   <div class="mt-2 text-lg font-semibold text-slate-100">{{ t('archive.settle_active') }}</div>
@@ -125,6 +128,7 @@
     {{ t('archive.settle_button') }}
   </button>
 </div>
+{% endif %}
 
 <script>
   (function () {

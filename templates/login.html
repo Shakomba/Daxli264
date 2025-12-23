@@ -27,10 +27,8 @@
     </button>
   </form>
 
-  <div class="mt-4 text-sm text-slate-300 space-y-2">
-    <div>
-      <a class="text-indigo-300 font-semibold" href="{{ url_for('forgot_password') }}">{{ t('login.forgot_password') }}</a>
-    </div>
+  <div class="mt-5 text-sm text-slate-300 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+    <a class="text-indigo-300 font-semibold" href="{{ url_for('forgot_password') }}">{{ t('login.forgot_password') }}</a>
     <a class="text-indigo-300 font-semibold"
        href="{{ url_for('register', next=request.args.get('next')) }}">{{ t('login.create_account') }}</a>
   </div>

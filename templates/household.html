@@ -47,7 +47,6 @@
                 <span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full bg-white/5 ring-1 ring-white/15 text-slate-200 leading-none">{{ t('common.you') }}</span>
               {% endif %}
             </div>
-            <div class="text-xs text-slate-300 truncate">{{ m.email }}</div>
           </div>
 
           {% if is_owner and m.id != owner_id %}
@@ -89,14 +88,8 @@
         </div>
       {% endif %}
 
-      <form class="mt-4 space-y-3" method="post" action="{{ url_for('leave_household') }}"
+      <form class="mt-4" method="post" action="{{ url_for('leave_household') }}"
             onsubmit="return confirmAction('{{ t('household.leave_confirm') | e }}');">
-        <div class="text-start">
-          <label class="text-sm text-slate-200">{{ t('household.confirm_password') }}</label>
-          <input name="password" type="password" required
-                 class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-rose-400"
-                 placeholder="{{ t('common.password_placeholder') }}" />
-        </div>
         <button class="w-full py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-sm font-semibold
                        {% if not can_leave %}opacity-50 cursor-not-allowed{% endif %}"
                 {% if not can_leave %}disabled{% endif %}>

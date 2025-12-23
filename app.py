@@ -207,7 +207,8 @@ TRANSLATIONS = {
         "flash.household_created": "Household created. Share the join code with your roommates.",
         "flash.password_required": "Please enter your password to confirm.",
         "flash.password_incorrect": "Incorrect password.",
-        "flash.admin_cant_leave": "Admins can't leave while other members are in the household. Remove members first.",
+        "flash.admin_cant_leave": "Admins can't leave the household.",
+        "flash.settle_admin_only": "Only household admins can settle expenses.",
         "flash.left_household": "You left the household.",
         "flash.delete_account_blocked": "Remove other members or leave the household before deleting your account.",
         "flash.account_deleted": "Account deleted.",
@@ -419,7 +420,8 @@ TRANSLATIONS = {
         "flash.household_created": "ماڵەوە دروستکرا. کۆدەکە بدە بە هاوژوورەکانت.",
         "flash.password_required": "بۆ دڵنیابوونەوە وشەی نهێنی پێویستە.",
         "flash.password_incorrect": "وشەی نهێنی هەڵەیە.",
-        "flash.admin_cant_leave": "وەک بەڕێوەبەر ناتوانیت جێبهێڵیت هەتا ئەندامانی تر مابن. سەرەتا ئەوان لاببە.",
+        "flash.admin_cant_leave": "وەک بەڕێوەبەر ناتوانیت ماڵەوە جێبهێڵیت.",
+        "flash.settle_admin_only": "تەنها بەڕێوەبەرانی ماڵەوە دەتوانن یەکسانکردنەوە بکەن.",
         "flash.left_household": "ماڵەکەت جێهێشت.",
         "flash.delete_account_blocked": "پێش سڕینەوەی هەژمار، ئەندامەکانی تر لاببە یان ماڵەکە جێبهێڵە.",
         "flash.account_deleted": "هەژمارەکەت بەسەرکەوتوویی سڕایەوە.",
@@ -1135,12 +1137,9 @@ def create_app():
         owner_id = h.owner_id if h else None
         members.sort(key=lambda u: (u.id != owner_id, u.id != current_user.id, (u.name or "").lower()))
 
-        member_count = Membership.query.filter_by(household_id=hid).count()
         is_owner = (h.owner_id == current_user.id)
-        can_leave = (not is_owner) or (member_count <= 1)
-        leave_block_reason = None
-        if is_owner and member_count > 1:
-            leave_block_reason = t("flash.admin_cant_leave")
+        can_leave = not is_owner
+        leave_block_reason = t("flash.admin_cant_leave") if is_owner else None
 
         return render_template(
             "household.html",
@@ -1163,14 +1162,6 @@ def create_app():
         if not h:
             abort(404)
 
-        password = request.form.get("password", "")
-        if not password:
-            flash(t("flash.password_required"), "error")
-            return redirect(url_for("household"))
-        if not check_password_hash(current_user.password_hash, password):
-            flash(t("flash.password_incorrect"), "error")
-            return redirect(url_for("household"))
-
         # Best-effort backfill owner_id
         if h.owner_id is None:
             first = Membership.query.filter_by(household_id=hid).order_by(Membership.created_at.asc()).first()
@@ -1178,22 +1169,12 @@ def create_app():
                 h.owner_id = first.user_id
                 db.session.commit()
 
-        member_count = Membership.query.filter_by(household_id=hid).count()
-        if h.owner_id == current_user.id and member_count > 1:
+        if h.owner_id == current_user.id:
             flash(t("flash.admin_cant_leave"), "error")
             return redirect(url_for("household"))
 
         # Remove membership
         Membership.query.filter_by(user_id=current_user.id).delete()  # defensive: clear any stray memberships
-
-        # If this was the last member and also the owner, delete the household (and related data) to avoid orphaned data.
-        if h.owner_id == current_user.id and member_count <= 1:
-            # Delete participants first (FK)
-            exp_ids = [e.id for e in Expense.query.filter_by(household_id=hid).all()]
-            if exp_ids:
-                ExpenseParticipant.query.filter(ExpenseParticipant.expense_id.in_(exp_ids)).delete(synchronize_session=False)
-            Expense.query.filter_by(household_id=hid).delete()
-            db.session.delete(h)
 
         db.session.commit()
         flash(t("flash.left_household"), "success")
@@ -1578,6 +1559,10 @@ def create_app():
         if not hid:
             return redirect(url_for("setup_household"))
 
+        if not is_household_owner(hid):
+            flash(t("flash.settle_admin_only"), "error")
+            return redirect(url_for("archive"))
+
         password = request.form.get("password", "")
         if not password or not check_password_hash(current_user.password_hash, password):
             flash(t("flash.password_incorrect"), "error")
@@ -1609,6 +1594,7 @@ def create_app():
         if not hid:
             return redirect(url_for("setup_household"))
 
+        is_owner = is_household_owner(hid)
         lang = get_lang()
         sort = request.args.get("sort", "month").strip().lower() or "month"
         selected_month = request.args.get("month", "").strip()
@@ -1714,6 +1700,7 @@ def create_app():
             total_iqd=total_iqd,
             user_by_id=user_by_id,
             parts_map=parts_map,
+            is_owner=is_owner,
         )
 
     return app

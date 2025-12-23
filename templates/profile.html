@@ -13,7 +13,7 @@
           enctype="multipart/form-data">
       <input type="hidden" name="next" value="{{ request.path }}">
 
-      <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+      <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
         <img src="{{ url_for('avatar', user_id=current_user.id) }}" alt="{{ t('profile.picture_alt') }}"
              class="h-16 w-16 rounded-full object-cover ring-1 ring-white/10 bg-white/5">
         <label class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold cursor-pointer">
