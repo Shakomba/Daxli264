@@ -1,36 +1,63 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="flex flex-col items-center gap-6">
-  <div class="flex flex-col items-center gap-3 text-center">
-    <div class="h-12 w-12 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10">
+<style>
+  .field-error {
+    border-color: #FF453A !important;
+    box-shadow: 0 0 0 2px rgba(255, 69, 58, 0.4) !important;
+  }
+  .shake {
+    animation: shake 0.28s ease-in-out;
+  }
+  @keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+  }
+</style>
+<div class="flex flex-col items-center gap-8">
+  <div class="flex flex-col items-center gap-4 text-center">
+    <div class="h-24 w-24 rounded-3xl overflow-hidden bg-white/5 ring-2 ring-white/10 shadow-2xl">
       <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-cover">
     </div>
-    <div class="text-xl font-semibold leading-tight">{{ t('app.name') }}</div>
+    <div class="text-4xl font-bold leading-tight">{{ t('app.name') }}</div>
   </div>
 
-  <div class="card rounded-3xl p-6 w-full max-w-xl text-center">
-    <h1 class="text-2xl font-semibold">{{ t('login.title') }}</h1>
+  <div class="card rounded-3xl p-8 w-full max-w-xl text-center">
+    <h1 class="text-3xl font-bold">{{ t('login.title') }}</h1>
 
-    <form class="mt-6 space-y-4" method="post" action="{{ url_for('login_post', next=request.args.get('next')) }}">
+    <form id="loginForm" class="mt-6 space-y-4" method="post" action="{{ url_for('login_post', next=request.args.get('next')) }}">
       {% if request.args.get('next') %}
         <input type="hidden" name="next" value="{{ request.args.get('next') }}">
       {% endif %}
 
       <div class="text-start">
         <label class="text-sm text-slate-200">{{ t('login.email_label') }}</label>
-        <input name="email" type="email" required autocomplete="username" autocapitalize="none" spellcheck="false"
+        <input id="loginEmail" name="email" type="email" autocomplete="username" autocapitalize="none" spellcheck="false"
                class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
                placeholder="{{ t('login.email_placeholder') }}" dir="ltr" />
+        <div id="emailError" class="mt-1 text-xs text-rose-400 hidden"></div>
       </div>
 
       <div class="text-start">
         <label class="text-sm text-slate-200">{{ t('login.password_label') }}</label>
-        <input name="password" type="password" required autocomplete="current-password"
-               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
-               placeholder="{{ t('login.password_placeholder') }}" />
+        <div class="relative">
+          <input id="loginPassword" name="password" type="password" autocomplete="current-password"
+                 class="mt-1 w-full px-4 py-3 pr-12 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
+                 placeholder="{{ t('login.password_placeholder') }}" />
+          <button type="button" class="no-hover absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 transition outline-none" onclick="togglePassword('loginPassword', this)">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              <path class="eye-closed hidden" stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.584 10.587a2 2 0 002.828 2.83M9.363 5.365A9.466 9.466 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.716 9.716 0 01-1.676 2.635m-1.224 1.224A9.467 9.467 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.716 9.716 0 011.676-2.635"/>
+            </svg>
+          </button>
+        </div>
+        <div id="passwordError" class="mt-1 text-xs text-rose-400 hidden"></div>
       </div>
 
-      <button class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
+      <button type="submit" class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
         {{ t('login.button') }}
       </button>
     </form>
@@ -42,4 +69,54 @@
     </div>
   </div>
 </div>
+
+<script>
+  (function() {
+    const form = document.getElementById('loginForm');
+    const emailInput = document.getElementById('loginEmail');
+    const passwordInput = document.getElementById('loginPassword');
+    const emailError = document.getElementById('emailError');
+    const passwordError = document.getElementById('passwordError');
+    
+    form.addEventListener('submit', function(e) {
+      let hasError = false;
+      
+      // Clear previous errors
+      emailInput.classList.remove('field-error', 'shake');
+      passwordInput.classList.remove('field-error', 'shake');
+      emailError.classList.add('hidden');
+      passwordError.classList.add('hidden');
+      
+      // Validate email
+      if (!emailInput.value.trim()) {
+        e.preventDefault();
+        emailInput.classList.add('field-error', 'shake');
+        emailError.textContent = 'Email is required';
+        emailError.classList.remove('hidden');
+        if (!hasError) {
+          emailInput.focus();
+          hasError = true;
+        }
+      }
+      
+      // Validate password
+      if (!passwordInput.value) {
+        e.preventDefault();
+        passwordInput.classList.add('field-error', 'shake');
+        passwordError.textContent = 'Password is required';
+        passwordError.classList.remove('hidden');
+        if (!hasError) {
+          passwordInput.focus();
+          hasError = true;
+        }
+      }
+      
+      // Remove shake animation after it completes
+      setTimeout(() => {
+        emailInput.classList.remove('shake');
+        passwordInput.classList.remove('shake');
+      }, 300);
+    });
+  })();
+</script>
 {% endblock %}

@@ -58,12 +58,33 @@
     body {
       background-color: var(--page-bg);
     }
+    html {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
     body {
       background:
         radial-gradient(900px circle at 50% -20%, rgba(139, 92, 246, 0.10), transparent 55%),
         linear-gradient(135deg, var(--bg) 0%, var(--bg) 100%);
       color: var(--text);
       font-family: "Vazirmatn", "Noto Naskh Arabic", "Noto Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: pan-y;
+    }
+    
+    /* Mobile bottom nav spacing */
+    @media (max-width: 640px) {
+      body {
+        padding-bottom: 80px;
+      }
+      /* Reduce backdrop-filter on mobile for better performance */
+      .card {
+        backdrop-filter: blur(8px);
+      }
+      .header-shell {
+        backdrop-filter: blur(8px);
+      }
     }
 
     /* Map common Tailwind text utilities to the palette (dark mode). */
@@ -72,18 +93,99 @@
     .text-slate-300 { color: var(--text-2) !important; }
     .text-slate-400 { color: var(--text-3) !important; }
     .card {
-      backdrop-filter: blur(10px);
-      background: rgba(18, 18, 27, 0.72);
+      backdrop-filter: blur(16px);
+      background: rgba(18, 18, 27, 0.75);
       border: 1px solid var(--border);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.2);
+      transform: translateZ(0);
     }
     .header-shell {
-      backdrop-filter: blur(10px);
-      background: rgba(15, 16, 23, 0.70);
+      backdrop-filter: blur(12px);
+      background: rgba(15, 16, 23, 0.75);
       border: 1px solid rgba(255,255,255,0.08);
+      transform: translateZ(0);
     }
-#appHeader {
-      transition: border-radius .25s ease, box-shadow .25s ease;
+    
+    /* Mobile bottom navigation */
+    @media (max-width: 640px) {
+      .mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        backdrop-filter: blur(12px);
+        background: rgba(15, 16, 23, 0.95);
+        border-top: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+        padding: 0.5rem 0;
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+      }
+      .mobile-bottom-nav nav {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.25rem;
+        padding: 0 0.5rem;
+      }
+      .mobile-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        border-radius: 1rem;
+        transition: all 0.2s ease;
+        position: relative;
+        text-decoration: none;
+      }
+      .mobile-nav-item svg {
+        width: 1.5rem;
+        height: 1.5rem;
+        margin-bottom: 0.25rem;
+        transition: transform 0.2s ease;
+      }
+      .mobile-nav-item span {
+        font-size: 0.65rem;
+        font-weight: 500;
+      }
+      .mobile-nav-item.active {
+        background: rgba(139, 92, 246, 0.15);
+      }
+      .mobile-nav-item.active::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 32px;
+        height: 3px;
+        background: var(--accent);
+        border-radius: 0 0 3px 3px;
+      }
+      .mobile-nav-item.active svg {
+        color: var(--accent);
+        transform: scale(1.1);
+      }
+      .mobile-nav-item:not(.active):hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      
+      /* Hide desktop nav on mobile */
+      #topNav {
+        display: none !important;
+      }
+    }
+    
+    /* Desktop nav improvements */
+    @media (min-width: 641px) {
+      .mobile-bottom-nav {
+        display: none;
+      }
+    }
+    
+    #appHeader {
+      transition: border-radius .25s ease, box-shadow .25s ease, transform .2s ease;
     }
     .header-shell.docked {
       border-top-left-radius: 0 !important;
@@ -92,14 +194,21 @@
       border-bottom-right-radius: 1.5rem !important;
     }
     .soft {
-      background: rgba(15, 16, 23, 0.55);
+      background: rgba(15, 16, 23, 0.60);
       border: 1px solid rgba(255,255,255,0.10);
+      transform: translateZ(0);
     }
     .input {
-      background: rgba(18, 18, 27, 0.75);
+      background: rgba(18, 18, 27, 0.85);
       border: 1px solid rgba(255,255,255,0.12);
       color: var(--text);
       text-align: start;
+      transition: all 0.2s ease;
+    }
+    .input:focus {
+      background: rgba(18, 18, 27, 0.95);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus);
     }
     .input::placeholder { color: rgba(183, 186, 199, 0.70); }
 a[href^="mailto"],
@@ -116,6 +225,8 @@ a[href^="mailto"],
       background: rgba(18, 18, 27, 0.96);
       border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      will-change: opacity, transform;
+      -webkit-transform: translateY(-8px) scale(0.98);
     }
 .menu-panel.open {
       opacity: 1;
@@ -134,14 +245,59 @@ a[href^="mailto"],
 
 
     button {
-      transition: transform .15s ease, filter .15s ease;
+      transition: transform .15s ease, box-shadow .15s ease;
     }
-    button:hover {
+    button:hover:not(:disabled):not(.no-hover) {
       transform: translateY(-1px);
-      filter: brightness(1.06);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
-    button:active {
+    button:active:not(:disabled):not(.no-hover) {
       transform: translateY(0);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Floating Action Button */
+    .fab {
+      position: fixed !important;
+      bottom: 90px !important;
+      right: 1rem !important;
+      z-index: 40 !important;
+      width: 56px !important;
+      height: 56px !important;
+      border-radius: 50% !important;
+      background: linear-gradient(135deg, var(--accent), #a855f7) !important;
+      box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4), 0 2px 8px rgba(0,0,0,0.3) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none !important;
+      cursor: pointer !important;
+    }
+    .fab:hover {
+      transform: scale(1.1) translateY(-2px) !important;
+      box-shadow: 0 12px 32px rgba(139, 92, 246, 0.5), 0 4px 12px rgba(0,0,0,0.4) !important;
+    }
+    .fab:active {
+      transform: scale(0.95) !important;
+    }
+    /* Expense form visibility - prevent layout shift */
+    #desktopExpenseForm {
+      display: none;
+    }
+    @media (min-width: 641px) {
+      .fab {
+        display: none !important;
+      }
+      #expenseModal {
+        display: none !important;
+      }
+      #desktopExpenseForm {
+        display: block;
+      }
     }
     :root[data-theme="light"] body {
       background:
@@ -155,12 +311,21 @@ a[href^="mailto"],
       background-color: var(--page-bg);
     }
     :root[data-theme="light"] .card {
-      background: rgba(226, 232, 240, 0.92);
+      background: rgba(255, 255, 255, 0.95);
       border: 1px solid rgba(15, 23, 42, 0.1);
+      box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
     }
     :root[data-theme="light"] .header-shell {
-      background: rgba(226, 232, 240, 0.8);
+      background: rgba(255, 255, 255, 0.85);
       border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+    :root[data-theme="light"] .mobile-bottom-nav {
+      background: rgba(255, 255, 255, 0.95);
+      border-top: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
+    }
+    :root[data-theme="light"] .mobile-nav-item:not(.active):hover {
+      background: rgba(15, 23, 42, 0.05);
     }
     :root[data-theme="light"] .menu-panel {
       background: rgba(255, 255, 255, 0.98);
@@ -168,13 +333,17 @@ a[href^="mailto"],
       box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
     }
     :root[data-theme="light"] .soft {
-      background: rgba(203, 213, 225, 0.7);
+      background: rgba(203, 213, 225, 0.75);
       border: 1px solid rgba(15, 23, 42, 0.1);
     }
     :root[data-theme="light"] .input {
-      background: rgba(226, 232, 240, 0.95);
+      background: rgba(255, 255, 255, 0.98);
       border: 1px solid rgba(15, 23, 42, 0.14);
       color: #0f172a;
+    }
+    :root[data-theme="light"] .input:focus {
+      background: #ffffff;
+      border-color: var(--accent);
     }
     :root[data-theme="light"] .input::placeholder { color: rgba(71, 85, 105, 0.75); }
 
@@ -210,6 +379,77 @@ a[href^="mailto"],
       right: 0;
       top: 0;
     }
+    
+    /* Page transition animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    #appMain > div {
+      animation: fadeInUp 0.4s ease-out;
+    }
+    
+    /* Skeleton loading state */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    /* Improved scrollbar for webkit browsers */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(139, 92, 246, 0.3) rgba(255, 255, 255, 0.05);
+    }
+
+    /* Mobile performance optimizations */
+    @media (max-width: 640px) {
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* Use GPU acceleration for animations on mobile */
+      .card, .soft, .mobile-nav-item, button {
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+      }
+
+      /* Fix background to prevent repaint on scroll */
+      body {
+        background-attachment: fixed;
+      }
+    }
+    
+    *::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    *::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+      background: rgba(139, 92, 246, 0.3);
+      border-radius: 4px;
+    }
+    
+    *::-webkit-scrollbar-thumb:hover {
+      background: rgba(139, 92, 246, 0.5);
+    }
   
   </style>
 </head>
@@ -226,11 +466,11 @@ a[href^="mailto"],
       <div class="{% if is_auth_page %}flex flex-col items-center text-center gap-3{% else %}flex flex-col gap-4 sm:grid sm:grid-cols-[auto,1fr,auto] sm:items-center{% endif %}">
         {% if is_auth_page %}
           {% if not hide_auth_brand %}
-            <div class="flex items-center justify-center gap-3">
-              <div class="h-10 w-10 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/10">
+            <div class="flex flex-col items-center justify-center gap-4">
+              <div class="h-24 w-24 rounded-3xl overflow-hidden bg-white/5 ring-2 ring-white/10 shadow-2xl">
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-cover">
               </div>
-              <div class="text-xl font-semibold leading-tight">Jard</div>
+              <div class="text-4xl font-bold leading-tight">Jard</div>
             </div>
           {% endif %}
         {% else %}
@@ -320,6 +560,44 @@ a[href^="mailto"],
       </div>
     </header>
 
+    <!-- Mobile Bottom Navigation -->
+    {% if current_user.is_authenticated and not is_auth_page and has_household %}
+    <div class="mobile-bottom-nav">
+      <nav>
+        <a href="{{ url_for('dashboard') }}" class="mobile-nav-item {{ 'active' if ep=='dashboard' else '' }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span>{{ t('nav.dashboard') }}</span>
+        </a>
+        <a href="{{ url_for('expenses') }}" class="mobile-nav-item {{ 'active' if ep=='expenses' else '' }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          <span>{{ t('nav.expenses') }}</span>
+        </a>
+        <a href="{{ url_for('household') }}" class="mobile-nav-item {{ 'active' if ep=='household' else '' }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 22V12h6v10"/>
+          </svg>
+          <span>{{ t('nav.household') }}</span>
+        </a>
+        <a href="{{ url_for('archive') }}" class="mobile-nav-item {{ 'active' if ep=='archive' else '' }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 8v13H3V8"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M1 3h22v5H1z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 12h4"/>
+          </svg>
+          <span>{{ t('nav.archive') }}</span>
+        </a>
+      </nav>
+    </div>
+    {% endif %}
+
     <div id="menuBackdrop" class="menu-backdrop fixed inset-0 bg-black/40 z-40"></div>
 
     <div id="flashMessages">
@@ -346,9 +624,86 @@ a[href^="mailto"],
     </main>
   </div>
 
+  <!-- Mobile FAB for adding expense (only shown on expenses page) -->
+  {% if ep == 'expenses' %}
+  <button id="openExpenseFormMobile" style="position: fixed !important; bottom: 90px !important; right: 1rem !important; z-index: 40 !important; width: 56px !important; height: 56px !important; border-radius: 50% !important; background: linear-gradient(135deg, #8B5CF6, #a855f7) !important; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4), 0 2px 8px rgba(0,0,0,0.3) !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; border: none !important; cursor: pointer !important; padding: 0 !important; margin: 0 !important;">
+    <svg style="width: 1.5rem; height: 1.5rem; color: white;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m7-7H5"/>
+    </svg>
+  </button>
+  <style>
+    @media (min-width: 641px) {
+      #openExpenseFormMobile {
+        display: none !important;
+      }
+    }
+  </style>
+  {% endif %}
+
+  <!-- Custom Confirmation Modal -->
+  <div id="confirmModal" class="hidden fixed inset-0 z-[100] items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);">
+    <div class="card rounded-3xl p-6 max-w-sm w-full text-center transform transition-all duration-200" id="confirmModalContent" style="opacity: 0; transform: scale(0.95);">
+      <div class="text-2xl mb-4">⚠️</div>
+      <h3 class="text-xl font-bold mb-3" id="confirmModalMessage"></h3>
+      <div class="flex gap-3 mt-6">
+        <button id="confirmModalCancel" class="flex-1 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition font-semibold">
+          {{ t('common.cancel') }}
+        </button>
+        <button id="confirmModalConfirm" class="flex-1 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 transition font-semibold text-white">
+          {{ t('common.confirm') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    (function() {
+      const modal = document.getElementById('confirmModal');
+      const content = document.getElementById('confirmModalContent');
+      const message = document.getElementById('confirmModalMessage');
+      const cancelBtn = document.getElementById('confirmModalCancel');
+      const confirmBtn = document.getElementById('confirmModalConfirm');
+      let resolveCallback = null;
+
+      function showConfirmModal(msg) {
+        return new Promise((resolve) => {
+          resolveCallback = resolve;
+          message.textContent = msg || "{{ t('common.confirm_action') }}";
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          document.body.style.overflow = 'hidden';
+          requestAnimationFrame(() => {
+            content.style.opacity = '1';
+            content.style.transform = 'scale(1)';
+          });
+        });
+      }
+
+      function hideConfirmModal(result) {
+        content.style.opacity = '0';
+        content.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          document.body.style.overflow = '';
+          if (resolveCallback) {
+            resolveCallback(result);
+            resolveCallback = null;
+          }
+        }, 200);
+      }
+
+      cancelBtn.addEventListener('click', () => hideConfirmModal(false));
+      confirmBtn.addEventListener('click', () => hideConfirmModal(true));
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) hideConfirmModal(false);
+      });
+
+      window.confirmAction = showConfirmModal;
+    })();
+
     function confirmAction(msg) {
-      return confirm(msg || "{{ t('common.confirm_action') }}");
+      return window.confirmAction(msg);
     }
 
     (function () {
@@ -473,6 +828,21 @@ a[href^="mailto"],
       syncThemeColor();
       syncThemeToggle();
     })();
+
+    // Password toggle function
+    window.togglePassword = function(inputId, button) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      
+      const eyeOpen = button.querySelectorAll('.eye-open');
+      const eyeClosed = button.querySelectorAll('.eye-closed');
+      
+      eyeOpen.forEach(el => el.classList.toggle('hidden', isPassword));
+      eyeClosed.forEach(el => el.classList.toggle('hidden', !isPassword));
+    };
 
     // -----------------------------
     // SPA-like navigation for the top tabs (Dashboard / Expenses / etc.)
@@ -600,6 +970,9 @@ a[href^="mailto"],
 
         if (push) window.history.pushState({}, '', target.href);
 
+        // Update active navigation state
+        updateActiveNav(target.href);
+
         // Scroll to top like a real navigation.
         // Use 'auto' (valid value); some browsers ignore unknown behavior values.
         window.scrollTo({ top: 0, behavior: 'auto' });
@@ -608,8 +981,46 @@ a[href^="mailto"],
         await runScriptsInOrder(scripts);
       }
 
+      function updateActiveNav(url) {
+        // Remove active class from all nav items
+        const allNavItems = document.querySelectorAll('#topNav a, #menuPanel a, .mobile-bottom-nav a');
+        allNavItems.forEach(item => item.classList.remove('active'));
+
+        // Determine which endpoint this URL corresponds to
+        const path = new URL(url, window.location.origin).pathname;
+        let endpoint = '';
+
+        if (path === '/' || path.startsWith('/dashboard')) endpoint = 'dashboard';
+        else if (path.startsWith('/expenses')) endpoint = 'expenses';
+        else if (path.startsWith('/household')) endpoint = 'household';
+        else if (path.startsWith('/archive')) endpoint = 'archive';
+        else if (path.startsWith('/profile')) endpoint = 'profile';
+
+        // Add active class to matching nav items
+        if (endpoint) {
+          const selector = `#topNav a[href*="${endpoint}"], #menuPanel a[href*="${endpoint}"], .mobile-bottom-nav a[href*="${endpoint}"]`;
+          const activeItems = document.querySelectorAll(selector);
+          activeItems.forEach(item => {
+            const href = item.getAttribute('href');
+            if (href && (href === `/${endpoint}` || href.startsWith(`/${endpoint}?`) || href.startsWith(`/${endpoint}/`))) {
+              item.classList.add('active');
+            }
+          });
+        }
+
+        // Show/hide FAB button based on endpoint
+        const fab = document.getElementById('openExpenseFormMobile');
+        if (fab) {
+          if (endpoint === 'expenses') {
+            fab.style.display = 'flex';
+          } else {
+            fab.style.display = 'none';
+          }
+        }
+      }
+
       document.addEventListener('click', (e) => {
-        const a = e.target && e.target.closest ? e.target.closest('#topNav a, #menuPanel a') : null;
+        const a = e.target && e.target.closest ? e.target.closest('#topNav a, #menuPanel a, .mobile-bottom-nav a') : null;
         if (!a) return;
         if (a.target && a.target !== '_self') return;
         if (isModifiedClick(e)) return;
@@ -623,6 +1034,9 @@ a[href^="mailto"],
       window.addEventListener('popstate', () => {
         navigate(window.location.href, { push: false });
       });
+
+      // Initialize FAB visibility on page load
+      updateActiveNav(window.location.href);
 
     })();
   </script>

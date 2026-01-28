@@ -37,6 +37,7 @@ TRANSLATIONS = {
         "common.confirm_action": "Are you sure?",
         "common.save": "Save",
         "common.cancel": "Cancel",
+        "common.confirm": "Confirm",
         "common.you": "You",
         "common.admin": "Admin",
         "common.delete": "Delete",
@@ -254,6 +255,7 @@ TRANSLATIONS = {
         "common.confirm_action": "دڵنیایت؟",
         "common.save": "پاشەکەوتکردن",
         "common.cancel": "هەڵوەشاندنەوە",
+        "common.confirm": "دڵنیام",
         "common.you": "تۆ",
         "common.admin": "بەڕێوەبەر",
         "common.delete": "سڕینەوە",
@@ -746,6 +748,7 @@ def create_app():
             "has_household": bool(get_household_id_or_none()),
             "lang": get_lang(),
             "password_min_length": app.config["PASSWORD_MIN_LENGTH"],
+            "ep": request.endpoint or "",
         }
 
     def requires_email_verification() -> bool:
@@ -1191,8 +1194,8 @@ def create_app():
         members.sort(key=lambda u: (u.id != owner_id, u.id != current_user.id, (u.name or "").lower()))
 
         is_owner = (h.owner_id == current_user.id)
-        can_leave = not is_owner
-        leave_block_reason = t("flash.admin_cant_leave") if is_owner else None
+        can_leave = True
+        leave_block_reason = None
 
         return render_template(
             "household.html",
@@ -1222,9 +1225,18 @@ def create_app():
                 h.owner_id = first.user_id
                 db.session.commit()
 
+        # If admin is leaving, transfer ownership to next oldest member
         if h.owner_id == current_user.id:
-            flash(t("flash.admin_cant_leave"), "error")
-            return redirect(url_for("household"))
+            next_member = Membership.query.filter(
+                Membership.household_id == hid,
+                Membership.user_id != current_user.id
+            ).order_by(Membership.created_at.asc()).first()
+            
+            if next_member:
+                h.owner_id = next_member.user_id
+            else:
+                # Last member, delete household
+                db.session.delete(h)
 
         # Remove membership
         Membership.query.filter_by(user_id=current_user.id).delete()  # defensive: clear any stray memberships
@@ -1434,12 +1446,29 @@ def create_app():
 
         members = household_members(hid)
         members.sort(key=lambda u: (u.id != current_user.id, (u.name or "").lower()))
-        exp = (
-            Expense.query
-            .filter_by(household_id=hid, is_archived=False)
-            .order_by(Expense.expense_date.desc(), Expense.created_at.desc())
-            .all()
-        )
+        
+        # Get filter and sort parameters
+        filter_user = request.args.get("filter_user", "").strip()
+        sort_by = request.args.get("sort", "date").strip()
+        
+        q = Expense.query.filter_by(household_id=hid, is_archived=False)
+        
+        # Apply user filter
+        if filter_user:
+            try:
+                filter_user_id = int(filter_user)
+                q = q.filter_by(payer_id=filter_user_id)
+            except ValueError:
+                filter_user = ""
+        
+        # Apply sorting
+        if sort_by == "person":
+            q = q.join(User, Expense.payer_id == User.id).order_by(User.name.asc(), Expense.expense_date.desc())
+        else:
+            sort_by = "date"
+            q = q.order_by(Expense.expense_date.desc(), Expense.created_at.desc())
+        
+        exp = q.all()
 
         # payer names
         user_by_id = {u.id: u for u in members}
@@ -1460,6 +1489,8 @@ def create_app():
             user_by_id=user_by_id,
             parts_map=parts_map,
             today=today,
+            filter_user=filter_user,
+            sort_by=sort_by,
         )
 
     @app.post("/expenses/add")
@@ -1590,6 +1621,11 @@ def create_app():
         spent_by_user = [(u, spent_by_id.get(u.id, 0)) for u in members]
         max_spent = max((amt for _u, amt in spent_by_user), default=0)
 
+        # Calculate the earliest expense date
+        earliest_date = None
+        if active_expenses:
+            earliest_date = min(e.expense_date for e in active_expenses if e.expense_date)
+
         month = current_month_yyyy_mm()
         return render_template(
             "dashboard.html",
@@ -1602,6 +1638,7 @@ def create_app():
             current_month=month,
             spent_by_user=spent_by_user,
             max_spent=max_spent,
+            earliest_date=earliest_date,
         )
 
     # ---------- Settle (archive current expenses) ----------
@@ -1652,12 +1689,24 @@ def create_app():
         sort = request.args.get("sort", "month").strip().lower() or "month"
         selected_month = request.args.get("month", "").strip()
         selected_settle = request.args.get("settle", "").strip()
+        filter_person = request.args.get("person", "").strip()
 
         q = Expense.query.filter_by(household_id=hid, is_archived=True)
+        
+        # Apply person filter
+        if filter_person:
+            try:
+                person_id = int(filter_person)
+                q = q.filter_by(payer_id=person_id)
+            except ValueError:
+                filter_person = ""
+        
         if sort == "settle":
             if selected_settle:
                 q = q.filter_by(archived_settle_id=selected_settle)
             archived = q.order_by(Expense.archived_settled_at.desc().nullslast(), Expense.expense_date.desc()).all()
+        elif sort == "person":
+            archived = q.join(User, Expense.payer_id == User.id).order_by(User.name.asc(), Expense.expense_date.desc()).all()
         else:
             sort = "month"
             if selected_month:
@@ -1717,7 +1766,7 @@ def create_app():
             return f"{_ordinal(sdt.day)} {sdt.strftime('%b')} - {_ordinal(edt.day)} {edt.strftime('%b')} {t('archive.settle_label')}"
 
         settles = []
-        for sid, smin, smax, _sat in settle_rows:
+        for sid, smin, smax, sat in settle_rows:
             if not sid or not smin or not smax:
                 continue
             settles.append({
@@ -1725,6 +1774,7 @@ def create_app():
                 "label": _fmt_settle_label(smin, smax),
                 "start": smin,
                 "end": smax,
+                "settled_at": sat,
             })
 
         members = household_members(hid)
@@ -1740,6 +1790,14 @@ def create_app():
             parts_map.setdefault(p.expense_id, []).append(p.user_id)
 
         total_iqd = sum(e.amount_iqd for e in archived)
+        
+        # Get settle info for selected settle
+        selected_settle_info = None
+        if selected_settle:
+            for s in settles:
+                if s["id"] == selected_settle:
+                    selected_settle_info = s
+                    break
 
         return render_template(
             "archive.html",
@@ -1750,10 +1808,13 @@ def create_app():
             sort=sort,
             selected_month=selected_month,
             selected_settle=selected_settle,
+            selected_settle_info=selected_settle_info,
+            filter_person=filter_person,
             total_iqd=total_iqd,
             user_by_id=user_by_id,
             parts_map=parts_map,
             is_owner=is_owner,
+            members=members,
         )
 
     return app

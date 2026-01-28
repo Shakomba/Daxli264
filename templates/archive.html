@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="flex flex-col items-center text-center gap-3">
+<div class="flex flex-col items-center text-center gap-3 mb-6">
   <h1 class="text-2xl font-semibold">{{ t('archive.title') }}</h1>
 
-  <div class="flex flex-col sm:flex-row gap-2 items-center justify-center">
-    <form method="get" action="{{ url_for('archive') }}" class="flex flex-col sm:flex-row gap-2 items-center justify-center">
+  <div class="flex flex-col sm:flex-row gap-2 items-center justify-center flex-wrap">
+    <form method="get" action="{{ url_for('archive') }}" class="flex flex-col sm:flex-row gap-2 items-center justify-center flex-wrap">
     <select id="sortSel" name="sort" class="w-52 h-11 px-4 rounded-2xl input">
       <option value="month" {% if sort=='month' %}selected{% endif %}>{{ t('archive.sort_month') }}</option>
       <option value="settle" {% if sort=='settle' %}selected{% endif %}>{{ t('archive.sort_settle') }}</option>
+      <option value="person" {% if sort=='person' %}selected{% endif %}>Sort by Person</option>
     </select>
 
     <select id="monthSel" name="month" class="w-52 h-11 px-4 rounded-2xl input {% if sort!='month' %}hidden{% endif %}">
@@ -24,12 +25,54 @@
         <option value="{{ s.id }}" {% if selected_settle==s.id %}selected{% endif %}>{{ s.label }}</option>
       {% endfor %}
     </select>
+    
+    <select name="person" class="w-52 h-11 px-4 rounded-2xl input">
+      <option value="">All Members</option>
+      {% for m in members %}
+        <option value="{{ m.id }}" {% if filter_person == m.id|string %}selected{% endif %}>{{ m.name }}</option>
+      {% endfor %}
+    </select>
 
     <button class="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 text-sm">{{ t('common.filter') }}</button>
+    
+    {% if selected_month or selected_settle or filter_person or sort != 'month' %}
+      <a href="{{ url_for('archive') }}" class="px-4 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm">Clear</a>
+    {% endif %}
     </form>
 
   </div>
 </div>
+
+<!-- Settle info if viewing a specific settle -->
+{% if selected_settle_info %}
+<div class="card rounded-3xl p-6 w-full max-w-lg mx-auto mb-6">
+  <div class="flex items-center justify-center gap-3 mb-4">
+    <svg class="w-6 h-6 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 8v13H3V8"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M1 3h22v5H1z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10 12h4"/>
+    </svg>
+    <h2 class="text-xl font-bold">{{ selected_settle_info.label }}</h2>
+  </div>
+  
+  <div class="grid grid-cols-2 gap-4 text-center">
+    <div class="soft rounded-2xl p-4">
+      <div class="text-xs text-slate-400 mb-1">Started</div>
+      <div class="text-sm font-semibold text-slate-200 ltr">{{ selected_settle_info.start }}</div>
+    </div>
+    <div class="soft rounded-2xl p-4">
+      <div class="text-xs text-slate-400 mb-1">Settled</div>
+      <div class="text-sm font-semibold text-slate-200 ltr">
+        {% if selected_settle_info.settled_at %}
+          {{ selected_settle_info.settled_at.strftime('%Y-%m-%d %I:%M %p') }}
+        {% else %}
+          {{ selected_settle_info.end }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% if is_owner %}
 <!-- Settle modal (password confirmation) -->
@@ -52,9 +95,18 @@
     <form class="mt-5 space-y-3" method="post" action="{{ url_for('settle') }}" id="settleForm">
       <div>
         <label class="text-sm text-slate-200">{{ t('archive.enter_password') }}</label>
-        <input id="settlePassword" name="password" type="password" required
-               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-rose-400"
-               placeholder="{{ t('common.password_placeholder') }}" />
+        <div class="relative">
+          <input id="settlePassword" name="password" type="password" required
+                 class="mt-1 w-full px-4 py-3 pr-12 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-rose-400"
+                 placeholder="{{ t('common.password_placeholder') }}" />
+          <button type="button" class="no-hover absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 transition outline-none" onclick="togglePassword('settlePassword', this)">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              <path class="eye-closed hidden" stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.584 10.587a2 2 0 002.828 2.83M9.363 5.365A9.466 9.466 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.716 9.716 0 01-1.676 2.635m-1.224 1.224A9.467 9.467 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.716 9.716 0 011.676-2.635"/>
+            </svg>
+          </button>
+        </div>
         <div class="mt-1 text-[11px] text-slate-400">
           {{ t('archive.password_help') }}
         </div>
@@ -142,8 +194,12 @@
       if (v === 'settle') {
         settleSel.classList.remove('hidden');
         monthSel.classList.add('hidden');
-      } else {
+      } else if (v === 'month') {
         monthSel.classList.remove('hidden');
+        settleSel.classList.add('hidden');
+      } else {
+        // person sort - hide both
+        monthSel.classList.add('hidden');
         settleSel.classList.add('hidden');
       }
     }
