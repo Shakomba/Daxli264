@@ -1,5 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .field-error {
+    border-color: #FF453A !important;
+    outline: 2px solid rgba(255, 69, 58, 0.4) !important;
+    outline-offset: 0px !important;
+  }
+  .field-error:focus {
+    outline: 2px solid rgba(255, 69, 58, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.2) !important;
+  }
+  .shake {
+    animation: shake 0.28s ease-in-out;
+  }
+  @keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+  }
+</style>
+
 <div class="w-full max-w-3xl mx-auto space-y-6">
   <div class="card rounded-3xl p-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -9,7 +31,7 @@
       </div>
     </div>
 
-    <form class="mt-6 space-y-4" method="post" action="{{ url_for('profile_update') }}"
+    <form id="profileUpdateForm" class="mt-6 space-y-4" method="post" action="{{ url_for('profile_update') }}"
           enctype="multipart/form-data">
       <input type="hidden" name="next" value="{{ request.path }}">
 
@@ -90,38 +112,48 @@
         <div class="mt-2 text-xs text-slate-300">{{ t('profile.password_help') }}</div>
       </div>
 
-      <button class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
+      <button type="submit" class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
         {{ t('profile.save_changes') }}
       </button>
     </form>
   </div>
 
-  <div class="card rounded-3xl p-6 text-center">
-    <div class="text-xs uppercase tracking-widest text-rose-200">{{ t('profile.danger_zone') }}</div>
-    <div class="mt-2 text-lg font-semibold text-slate-100">{{ t('profile.delete_title') }}</div>
-    <div class="mt-1 text-xs text-slate-300">{{ t('profile.delete_help') }}</div>
-
-    <form class="mt-4 space-y-3" method="post" action="{{ url_for('delete_account') }}"
-          id="deleteAccountForm">
-      <div class="text-start">
-        <label class="text-sm text-slate-200">{{ t('profile.confirm_password') }}</label>
-        <div class="relative">
-          <input id="deletePassword" name="password" type="password" required
-                 class="mt-1 w-full px-4 py-3 pr-12 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-rose-400"
-                 placeholder="{{ t('common.password_placeholder') }}">
-          <button type="button" class="no-hover absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 transition outline-none" onclick="togglePassword('deletePassword', this)">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-              <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-              <path class="eye-closed hidden" stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.584 10.587a2 2 0 002.828 2.83M9.363 5.365A9.466 9.466 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.716 9.716 0 01-1.676 2.635m-1.224 1.224A9.467 9.467 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.716 9.716 0 011.676-2.635"/>
-            </svg>
-          </button>
-        </div>
+  <div class="card rounded-3xl p-6 text-center relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent"></div>
+    <div class="relative z-10">
+      <div class="flex items-center justify-center gap-2 mb-4">
+        <svg class="w-5 h-5 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div class="text-sm font-bold text-rose-300 uppercase tracking-wide">{{ t('profile.danger_zone') }}</div>
       </div>
-      <button class="w-full py-3 rounded-2xl bg-rose-700 hover:bg-rose-600 transition text-sm font-semibold text-white">
-        {{ t('profile.delete_button') }}
-      </button>
-    </form>
+
+      <div class="text-lg font-bold text-slate-100 mb-2">{{ t('profile.delete_title') }}</div>
+      <div class="text-sm text-slate-300 mb-5">{{ t('profile.delete_help') }}</div>
+
+      <form class="space-y-3" method="post" action="{{ url_for('delete_account') }}"
+            id="deleteAccountForm">
+        <div class="text-start">
+          <label class="text-sm text-slate-200">{{ t('profile.confirm_password') }}</label>
+          <div class="relative">
+            <input id="deletePassword" name="password" type="password" required
+                   class="mt-1 w-full px-4 py-3 pr-12 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
+                   placeholder="{{ t('common.password_placeholder') }}">
+            <button type="button" class="no-hover absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 transition outline-none" onclick="togglePassword('deletePassword', this)">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                <path class="eye-closed hidden" stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.584 10.587a2 2 0 002.828 2.83M9.363 5.365A9.466 9.466 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.716 9.716 0 01-1.676 2.635m-1.224 1.224A9.467 9.467 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.716 9.716 0 011.676-2.635"/>
+              </svg>
+            </button>
+          </div>
+          <div id="deletePasswordError" class="mt-1 text-xs text-rose-400 hidden"></div>
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 transition text-sm font-bold text-white shadow-lg shadow-rose-500/30">
+          {{ t('profile.delete_button') }}
+        </button>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -140,14 +172,75 @@
       preview.src = objectUrl;
     });
 
-    // Handle delete account confirmation
+    // Handle profile update with AJAX
+    const profileForm = document.getElementById('profileUpdateForm');
+    if (profileForm) {
+      profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = profileForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+
+        await submitFormAjax(profileForm, {
+          onSuccess: () => {
+            navigate(window.location.href, { push: false });
+          },
+          onError: () => {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+          }
+        });
+      });
+    }
+
+    // Handle delete account confirmation with AJAX
     const deleteForm = document.getElementById('deleteAccountForm');
-    if (deleteForm) {
+    const deletePasswordInput = document.getElementById('deletePassword');
+    const deletePasswordError = document.getElementById('deletePasswordError');
+
+    if (deleteForm && deletePasswordInput) {
       deleteForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        // Clear previous errors
+        deletePasswordInput.classList.remove('field-error', 'shake');
+        if (deletePasswordError) deletePasswordError.classList.add('hidden');
+
         const confirmed = await confirmAction('{{ t('profile.delete_confirm') | e }}');
         if (confirmed) {
-          deleteForm.submit();
+          const submitBtn = deleteForm.querySelector('button[type="submit"]');
+          const originalText = submitBtn.textContent;
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Deleting...';
+
+          await submitFormAjax(deleteForm, {
+            onRedirect: (url) => {
+              // Check if redirected back to profile page (indicates password error)
+              const urlObj = new URL(url, window.location.origin);
+              if (urlObj.pathname === '/profile' || urlObj.pathname.endsWith('/profile')) {
+                // Password incorrect - show error
+                deletePasswordInput.classList.add('field-error', 'shake');
+                if (deletePasswordError) {
+                  deletePasswordError.textContent = '{{ t('flash.password_incorrect') }}';
+                  deletePasswordError.classList.remove('hidden');
+                }
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+
+                setTimeout(() => {
+                  deletePasswordInput.classList.remove('shake');
+                }, 300);
+              } else {
+                // Success, proceed with redirect
+                window.location.href = url;
+              }
+            },
+            onError: () => {
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalText;
+            }
+          });
         }
       });
     }

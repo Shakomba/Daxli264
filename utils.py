@@ -49,6 +49,9 @@ def compute_net_balances(users, expenses, participants_map):
     consumed = {u.id: Fraction(0, 1) for u in users}
 
     for e in expenses:
+        # Skip expenses from payers no longer in the household
+        if e.payer_id not in paid:
+            continue
         paid[e.payer_id] += int(e.amount_iqd)
         parts = participants_map.get(e.id, [])
         if not parts:
@@ -57,6 +60,9 @@ def compute_net_balances(users, expenses, participants_map):
         n = len(parts)
         share = Fraction(int(e.amount_iqd), n)
         for uid in parts:
+            # Skip participants no longer in the household
+            if uid not in consumed:
+                continue
             consumed[uid] += share
 
     net_frac = {uid: Fraction(paid[uid], 1) - consumed[uid] for uid in paid.keys()}

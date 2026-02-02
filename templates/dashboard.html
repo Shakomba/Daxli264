@@ -14,7 +14,7 @@
   {% set amount = my_net if is_owed else (-my_net) if is_owes else 0 %}
 
   <!-- Balance Card with enhanced visuals -->
-  <div class="card rounded-3xl p-8 w-full max-w-xl text-center relative overflow-hidden">
+  <div class="card rounded-3xl p-8 w-full max-w-2xl text-center relative overflow-hidden">
     <div class="absolute inset-0 {% if is_owed %}bg-gradient-to-br from-emerald-500/10 to-transparent{% elif is_owes %}bg-gradient-to-br from-rose-500/10 to-transparent{% else %}bg-gradient-to-br from-slate-500/10 to-transparent{% endif %}"></div>
     <div class="relative z-10">
       <div class="text-sm font-medium text-slate-300 mb-3">
@@ -27,7 +27,7 @@
   </div>
 
   <!-- Spending by person with improved layout -->
-  <div class="w-full max-w-xl card rounded-3xl p-6 sm:p-8">
+  <div class="w-full max-w-2xl card rounded-3xl p-6 sm:p-8">
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-xl sm:text-2xl font-bold">{{ t('dashboard.spending_by_person') }}</h2>
       <div class="px-3 py-1 rounded-full bg-violet-500/20 text-violet-200 text-xs font-semibold">
@@ -45,10 +45,10 @@
                 <img src="{{ url_for('avatar', user_id=u.id) }}" alt="{{ u.name }}"
                      class="h-12 w-12 rounded-full object-cover ring-2 ring-white/10 bg-white/5">
               </div>
-              <div class="flex flex-col items-start min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5 min-w-0">
                 <span class="text-base font-semibold text-slate-100 truncate">{{ u.name }}</span>
                 {% if u.id == current_user.id %}
-                  <span class="mt-1 inline-flex items-center justify-center text-[10px] font-bold px-2.5 py-1.5 rounded-md bg-violet-500/30 text-violet-200 leading-none uppercase tracking-wide">
+                  <span class="inline-flex items-center justify-center text-[10px] font-bold px-2.5 py-1.5 rounded-md bg-violet-500/30 text-violet-200 leading-none uppercase tracking-wide -translate-y-px">
                     {{ t('common.you') }}
                   </span>
                 {% endif %}
@@ -79,7 +79,7 @@
   </div>
 
   <!-- Suggested payments with improved design -->
-  <div class="w-full max-w-xl card rounded-3xl p-6 sm:p-8">
+  <div class="w-full max-w-2xl card rounded-3xl p-6 sm:p-8">
     <div class="flex items-center justify-center gap-3 mb-6">
       <svg class="w-6 h-6 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>

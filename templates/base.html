@@ -185,7 +185,7 @@
     }
     
     #appHeader {
-      transition: border-radius .25s ease, box-shadow .25s ease, transform .2s ease;
+      transition: border-radius .12s ease, box-shadow .12s ease, transform .12s ease;
     }
     .header-shell.docked {
       border-top-left-radius: 0 !important;
@@ -455,22 +455,22 @@ a[href^="mailto"],
 </head>
 
 {% set ep = request.endpoint or "" %}
-{% set is_auth_page = ep in ["login", "register", "forgot_password", "reset_password", "verify_required"] %}
+{% set is_auth_page = ep in ["login", "register", "register_verify", "register_profile", "forgot_password", "reset_password", "verify_required", "setup_household"] %}
 {% set hide_auth_brand = ep in ["login", "register"] %}
 {% set is_fixed_auth_header = ep in ["login", "register"] and not hide_auth_brand %}
 
 <body class="min-h-screen text-slate-100{% if is_fixed_auth_header %} auth-fixed-header{% endif %}">
-  <div id="appRoot" class="max-w-6xl mx-auto px-4 {% if hide_auth_brand %}py-6{% elif is_fixed_auth_header %}pt-24 pb-6{% elif is_auth_page %}pt-0 pb-6{% else %}py-6{% endif %}">
+  <div id="appRoot" class="max-w-7xl mx-auto px-4 {% if hide_auth_brand %}py-6{% elif is_fixed_auth_header %}pt-24 pb-6{% elif is_auth_page %}pt-20 pb-6{% else %}py-6{% endif %}">
     {% set next_lang = "en" if lang == "ku" else "ku" %}
-    <header id="appHeader" class="{% if is_fixed_auth_header %}fixed inset-x-0 top-0{% else %}sticky top-0{% endif %} z-50 {% if is_auth_page %}{% if hide_auth_brand %}px-0 py-0{% else %}px-4 py-6{% endif %}{% else %}header-shell rounded-3xl px-4 py-3 sm:px-6{% endif %}">
-      <div class="{% if is_auth_page %}flex flex-col items-center text-center gap-3{% else %}flex flex-col gap-4 sm:grid sm:grid-cols-[auto,1fr,auto] sm:items-center{% endif %}">
+    <header id="appHeader" class="{% if is_auth_page %}fixed inset-x-0 top-0 bg-[var(--bg)]/95 backdrop-blur-sm border-b border-white/5{% elif is_fixed_auth_header %}fixed inset-x-0 top-0{% else %}sticky top-0{% endif %} z-50 {% if is_auth_page %}{% if hide_auth_brand %}px-0 py-0{% else %}px-4 py-4{% endif %}{% else %}header-shell rounded-3xl px-4 py-3 sm:px-6{% endif %}">
+      <div class="{% if is_auth_page %}flex flex-col items-center text-center gap-2{% else %}flex flex-col gap-4 sm:grid sm:grid-cols-[auto,1fr,auto] sm:items-center{% endif %}">
         {% if is_auth_page %}
           {% if not hide_auth_brand %}
-            <div class="flex flex-col items-center justify-center gap-4">
-              <div class="h-24 w-24 rounded-3xl overflow-hidden bg-white/5 ring-2 ring-white/10 shadow-2xl">
+            <div class="flex items-center justify-center gap-3">
+              <div class="h-10 w-10 rounded-xl overflow-hidden bg-white/5 ring-1 ring-white/10 shadow-lg">
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-cover">
               </div>
-              <div class="text-4xl font-bold leading-tight">Jard</div>
+              <div class="text-xl font-bold">{{ t('app.name') }}</div>
             </div>
           {% endif %}
         {% else %}
@@ -482,61 +482,65 @@ a[href^="mailto"],
               <div class="text-xl font-semibold leading-tight">Jard</div>
             </a>
             {% if current_user.is_authenticated and not is_auth_page %}
-              <div class="flex justify-center sm:justify-end relative sm:col-start-3 sm:row-start-1 sm:justify-self-end">
-                <button id="menuButton"
-                        class="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/15 transition"
-                        aria-expanded="false" aria-controls="menuPanel">
-                  <span class="sr-only">{{ t('menu.open') }}</span>
-                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+              <div class="flex items-center gap-1.5 sm:col-start-3 sm:row-start-1 sm:justify-self-end">
+                <!-- Language Toggle -->
+                <form method="post" action="{{ url_for('set_language') }}" class="inline">
+                  <input type="hidden" name="lang" value="{{ next_lang }}">
+                  <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}">
+                  <button type="submit"
+                          class="no-hover inline-flex items-center justify-center w-10 h-10 hover:text-violet-300 transition text-sm font-bold uppercase tracking-wide">
+                    {{ 'EN' if lang == 'ku' else 'کو' }}
+                  </button>
+                </form>
+
+                <!-- Separator -->
+                <div class="h-7 w-px bg-slate-400/30"></div>
+
+                <!-- Theme Toggle -->
+                <button type="button" id="themeToggle" data-theme-toggle
+                        class="no-hover inline-flex items-center justify-center w-10 h-10 hover:text-violet-300 transition">
+                  <svg id="themeIconMoon" class="h-5 w-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+                  </svg>
+                  <svg id="themeIconSun" class="h-5 w-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="4"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m14.95 6.95-1.41-1.41M7.46 7.46 6.05 6.05m12.9 0-1.41 1.41M7.46 16.54l-1.41 1.41"/>
                   </svg>
                 </button>
 
-                <div id="menuPanel" class="menu-panel absolute {{ 'left-0' if lang == 'ku' else 'right-0' }} top-full mt-2 w-64 card rounded-3xl p-3 z-50">
-                  <div class="flex flex-col gap-2">
-                    <a href="{{ url_for('profile') }}"
-                       class="w-full px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold inline-flex items-center gap-3">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 21a8 8 0 0 0-16 0"/>
-                        <circle cx="12" cy="8" r="4"/>
-                      </svg>
-                      {{ t('menu.profile') }}
-                    </a>
+                <!-- User Menu Dropdown -->
+                <div class="relative ml-2">
+                  <button id="menuButton"
+                          class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 hover:bg-white/15 transition"
+                          aria-expanded="false" aria-controls="menuPanel">
+                    <span class="sr-only">{{ t('menu.open') }}</span>
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M20 21a8 8 0 0 0-16 0"/>
+                      <circle cx="12" cy="8" r="4"/>
+                    </svg>
+                  </button>
 
-                    <button type="button" id="themeToggle" data-theme-toggle
-                            class="w-full px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold inline-flex items-center gap-3">
-                      <svg id="themeIconMoon" class="h-4 w-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
-                      </svg>
-                      <svg id="themeIconSun" class="h-4 w-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <circle cx="12" cy="12" r="4"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m14.95 6.95-1.41-1.41M7.46 7.46 6.05 6.05m12.9 0-1.41 1.41M7.46 16.54l-1.41 1.41"/>
-                      </svg>
-                      <span id="themeToggleLabel">{{ t('menu.switch_theme') }}</span>
-                    </button>
-
-                    <form method="post" action="{{ url_for('set_language') }}">
-                      <input type="hidden" name="lang" value="{{ next_lang }}">
-                      <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}">
-                      <button type="submit"
-                              class="w-full px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold inline-flex items-center gap-3">
+                  <div id="menuPanel" class="menu-panel absolute {{ 'left-0' if lang == 'ku' else 'right-0' }} top-full mt-2 w-48 card rounded-2xl p-2 z-50">
+                    <div class="flex flex-col gap-1">
+                      <a href="{{ url_for('profile') }}"
+                         class="w-full px-3 py-2.5 rounded-xl hover:bg-white/10 transition text-sm font-medium inline-flex items-center gap-2.5">
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c4.418 0 8 3.582 8 8 0 3.98-2.91 7.28-6.73 7.88M12 3C7.582 3 4 6.582 4 11c0 3.98 2.91 7.28 6.73 7.88M12 3v16M4 11h16"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                          <circle cx="12" cy="12" r="3"/>
                         </svg>
-                        {{ t('menu.language_to_en') if lang == 'ku' else t('menu.language_to_ku') }}
-                      </button>
-                    </form>
-
-                    <form method="post" action="{{ url_for('logout') }}">
-                      <button class="w-full px-4 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-sm font-semibold text-white inline-flex items-center gap-3">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M10 17l5-5-5-5"/>
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H3"/>
-                        </svg>
-                        {{ t('menu.logout') }}
-                      </button>
-                    </form>
+                        {{ t('menu.settings') }}
+                      </a>
+                      <form method="post" action="{{ url_for('logout') }}">
+                        <button class="w-full px-3 py-2.5 rounded-xl hover:bg-rose-500/20 transition text-sm font-medium text-rose-400 inline-flex items-center gap-2.5">
+                          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 17l5-5-5-5"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H3"/>
+                          </svg>
+                          {{ t('menu.logout') }}
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -545,15 +549,41 @@ a[href^="mailto"],
         {% endif %}
 
         {% if current_user.is_authenticated and not is_auth_page %}
-          {% set link_base = "px-3 py-2 rounded-xl transition" %}
+          {% set link_base = "px-4 py-2.5 rounded-xl transition inline-flex items-center gap-2" %}
           {% set active = "bg-violet-500/15 ring-1 ring-inset ring-violet-400/20" %}
           {% set inactive = "hover:bg-white/10" %}
-          <nav id="topNav" class="w-full flex flex-nowrap overflow-x-auto no-scrollbar items-center gap-2 text-sm whitespace-nowrap justify-start sm:justify-center px-2 sm:px-1 sm:col-start-2 sm:row-start-1">
+          <nav id="topNav" class="w-full flex flex-nowrap overflow-x-auto no-scrollbar items-center gap-2 text-base whitespace-nowrap justify-start sm:justify-center px-2 sm:px-1 sm:col-start-2 sm:row-start-1">
             {% if has_household %}
-              <a class="{{ link_base }} {{ active if ep=='dashboard' else inactive }}" href="{{ url_for('dashboard') }}">{{ t('nav.dashboard') }}</a>
-              <a class="{{ link_base }} {{ active if ep=='expenses' else inactive }}" href="{{ url_for('expenses') }}">{{ t('nav.expenses') }}</a>
-              <a class="{{ link_base }} {{ active if ep=='household' else inactive }}" href="{{ url_for('household') }}">{{ t('nav.household') }}</a>
-              <a class="{{ link_base }} {{ active if ep=='archive' else inactive }}" href="{{ url_for('archive') }}">{{ t('nav.archive') }}</a>
+              <a class="{{ link_base }} {{ active if ep=='dashboard' else inactive }}" href="{{ url_for('dashboard') }}">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="14" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                {{ t('nav.dashboard') }}
+              </a>
+              <a class="{{ link_base }} {{ active if ep=='expenses' else inactive }}" href="{{ url_for('expenses') }}">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                {{ t('nav.expenses') }}
+              </a>
+              <a class="{{ link_base }} {{ active if ep=='household' else inactive }}" href="{{ url_for('household') }}">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 22V12h6v10"/>
+                </svg>
+                {{ t('nav.household') }}
+              </a>
+              <a class="{{ link_base }} {{ active if ep=='archive' else inactive }}" href="{{ url_for('archive') }}">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 8v13H3V8"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M1 3h22v5H1z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 12h4"/>
+                </svg>
+                {{ t('nav.archive') }}
+              </a>
             {% endif %}
           </nav>
         {% endif %}
@@ -642,7 +672,12 @@ a[href^="mailto"],
 
   <!-- Custom Confirmation Modal -->
   <div id="confirmModal" class="hidden fixed inset-0 z-[100] items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);">
-    <div class="card rounded-3xl p-6 max-w-sm w-full text-center transform transition-all duration-200" id="confirmModalContent" style="opacity: 0; transform: scale(0.95);">
+    <div class="card rounded-3xl p-6 max-w-sm w-full text-center transform transition-all duration-200 relative" id="confirmModalContent" style="opacity: 0; transform: scale(0.95);">
+      <button id="confirmModalClose" class="absolute top-4 right-4 p-2 rounded-xl bg-white/10 hover:bg-white/15 transition-colors">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
       <div class="text-2xl mb-4">⚠️</div>
       <h3 class="text-xl font-bold mb-3" id="confirmModalMessage"></h3>
       <div class="flex gap-3 mt-6">
@@ -693,8 +728,11 @@ a[href^="mailto"],
         }, 200);
       }
 
+      const closeBtn = document.getElementById('confirmModalClose');
+
       cancelBtn.addEventListener('click', () => hideConfirmModal(false));
       confirmBtn.addEventListener('click', () => hideConfirmModal(true));
+      if (closeBtn) closeBtn.addEventListener('click', () => hideConfirmModal(false));
       modal.addEventListener('click', (e) => {
         if (e.target === modal) hideConfirmModal(false);
       });
@@ -735,18 +773,15 @@ a[href^="mailto"],
 
       function syncThemeToggle() {
         const toggle = document.getElementById('themeToggle');
-        const label = document.getElementById('themeToggleLabel');
         const iconSun = document.getElementById('themeIconSun');
         const iconMoon = document.getElementById('themeIconMoon');
-        if (!toggle || !label) return;
+        if (!toggle) return;
         const active = currentTheme();
         toggle.setAttribute('aria-pressed', active === 'dark' ? 'true' : 'false');
         if (active === 'dark') {
-          label.textContent = "{{ t('menu.switch_to_light') }}";
           if (iconSun) iconSun.classList.remove('hidden');
           if (iconMoon) iconMoon.classList.add('hidden');
         } else {
-          label.textContent = "{{ t('menu.switch_to_dark') }}";
           if (iconSun) iconSun.classList.add('hidden');
           if (iconMoon) iconMoon.classList.remove('hidden');
         }
@@ -936,6 +971,13 @@ a[href^="mailto"],
           return;
         }
 
+        // Show instant loading state (optional fade)
+        const mainEl = document.getElementById('appMain');
+        if (mainEl) {
+          mainEl.style.opacity = '0.7';
+          mainEl.style.pointerEvents = 'none';
+        }
+
         let res;
         try {
           res = await fetch(target.href, {
@@ -944,6 +986,10 @@ a[href^="mailto"],
             credentials: 'same-origin'
           });
         } catch (_) {
+          if (mainEl) {
+            mainEl.style.opacity = '';
+            mainEl.style.pointerEvents = '';
+          }
           window.location.href = target.href;
           return;
         }
@@ -973,13 +1019,21 @@ a[href^="mailto"],
         // Update active navigation state
         updateActiveNav(target.href);
 
-        // Scroll to top like a real navigation.
-        // Use 'auto' (valid value); some browsers ignore unknown behavior values.
-        window.scrollTo({ top: 0, behavior: 'auto' });
+        // Restore opacity immediately for instant feel
+        if (mainEl) {
+          mainEl.style.opacity = '';
+          mainEl.style.pointerEvents = '';
+        }
+
+        // Scroll to top instantly (no smooth scroll for faster feel)
+        window.scrollTo({ top: 0, behavior: 'instant' });
 
         // Run any scripts that were part of the new page.
         await runScriptsInOrder(scripts);
       }
+
+      // Expose navigate globally for use in page scripts
+      window.navigate = navigate;
 
       function updateActiveNav(url) {
         // Remove active class from all nav items
@@ -1020,12 +1074,14 @@ a[href^="mailto"],
       }
 
       document.addEventListener('click', (e) => {
-        const a = e.target && e.target.closest ? e.target.closest('#topNav a, #menuPanel a, .mobile-bottom-nav a') : null;
+        const a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
         if (!a) return;
         if (a.target && a.target !== '_self') return;
         if (isModifiedClick(e)) return;
+        if (a.hasAttribute('download')) return;
+        if (a.hasAttribute('data-no-spa')) return;
         const href = a.getAttribute('href');
-        if (!href || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+        if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
         if (!sameOrigin(href)) return;
         e.preventDefault();
         navigate(href, { push: true });
@@ -1039,6 +1095,87 @@ a[href^="mailto"],
       updateActiveNav(window.location.href);
 
     })();
+
+    // Global AJAX form handler for SPA-like experience
+    window.submitFormAjax = async function(form, options = {}) {
+      const formData = new FormData(form);
+      const method = form.method || 'POST';
+      const action = form.action || window.location.href;
+
+      try {
+        const response = await fetch(action, {
+          method: method,
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          credentials: 'same-origin'
+        });
+
+        if (response.redirected || !response.ok) {
+          // If redirected or error, do a full page reload to handle it properly
+          if (options.onRedirect) {
+            options.onRedirect(response.url);
+          } else {
+            window.location.href = response.url || action;
+          }
+          return null;
+        }
+
+        const html = await response.text();
+
+        // Parse the response to extract flash messages and update content
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        // Extract and show flash messages
+        const flashMessages = doc.getElementById('flashMessages');
+        if (flashMessages) {
+          const currentFlash = document.getElementById('flashMessages');
+          if (currentFlash) {
+            currentFlash.innerHTML = flashMessages.innerHTML;
+          }
+        }
+
+        // If callback provided, let it handle the update
+        if (options.onSuccess) {
+          options.onSuccess(doc);
+        }
+
+        return doc;
+      } catch (error) {
+        console.error('Form submission error:', error);
+        if (options.onError) {
+          options.onError(error);
+        }
+        return null;
+      }
+    };
+
+    // Show flash message dynamically
+    window.showFlash = function(message, category = 'success') {
+      const flashContainer = document.getElementById('flashMessages');
+      if (!flashContainer) return;
+
+      const bgClass = category === 'success' ? 'bg-emerald-500/15 ring-emerald-400/20' :
+                      category === 'error' ? 'bg-rose-500/15 ring-rose-400/20' :
+                      'bg-sky-500/15 ring-sky-400/20';
+
+      const flashHTML = `
+        <div class="mt-5 space-y-2 text-center">
+          <div class="px-4 py-3 rounded-2xl ring-1 ${bgClass}">
+            <div class="text-sm">${message}</div>
+          </div>
+        </div>
+      `;
+
+      flashContainer.innerHTML = flashHTML;
+
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        flashContainer.innerHTML = '';
+      }, 5000);
+    };
   </script>
 </body>
 </html>

@@ -37,6 +37,8 @@ class Household(db.Model):
     # User who created the household (best-effort backfilled for older DBs)
     owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    # Tracks the start of the current expense period (reset on settle)
+    period_start_date = db.Column(db.String(10), nullable=True)  # YYYY-MM-DD
 
 class Expense(db.Model):
     __tablename__ = "expense"

@@ -1,103 +1,201 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .field-error {
+    border-color: #FF453A !important;
+    outline: 2px solid rgba(255, 69, 58, 0.4) !important;
+    outline-offset: 0px !important;
+  }
+  .field-error:focus {
+    outline: 2px solid rgba(255, 69, 58, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.2) !important;
+  }
+  .shake {
+    animation: shake 0.28s ease-in-out;
+  }
+  @keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+  }
+</style>
 
-<div class="flex flex-col items-center text-center gap-3 mb-6">
-  <h1 class="text-2xl font-semibold">{{ t('archive.title') }}</h1>
-
-  <div class="flex flex-col sm:flex-row gap-2 items-center justify-center flex-wrap">
-    <form method="get" action="{{ url_for('archive') }}" class="flex flex-col sm:flex-row gap-2 items-center justify-center flex-wrap">
-    <select id="sortSel" name="sort" class="w-52 h-11 px-4 rounded-2xl input">
-      <option value="month" {% if sort=='month' %}selected{% endif %}>{{ t('archive.sort_month') }}</option>
-      <option value="settle" {% if sort=='settle' %}selected{% endif %}>{{ t('archive.sort_settle') }}</option>
-      <option value="person" {% if sort=='person' %}selected{% endif %}>Sort by Person</option>
-    </select>
-
-    <select id="monthSel" name="month" class="w-52 h-11 px-4 rounded-2xl input {% if sort!='month' %}hidden{% endif %}">
-      <option value="" {% if not selected_month %}selected{% endif %}>{{ t('archive.all_months') }}</option>
-      {% for m in months %}
-        <option value="{{ m }}" {% if selected_month==m %}selected{% endif %}>{{ m }}</option>
-      {% endfor %}
-    </select>
-
-    <select id="settleSel" name="settle" class="w-52 h-11 px-4 rounded-2xl input {% if sort!='settle' %}hidden{% endif %}">
-      <option value="" {% if not selected_settle %}selected{% endif %}>{{ t('archive.all_settles') }}</option>
-      {% for s in settles %}
-        <option value="{{ s.id }}" {% if selected_settle==s.id %}selected{% endif %}>{{ s.label }}</option>
-      {% endfor %}
-    </select>
-    
-    <select name="person" class="w-52 h-11 px-4 rounded-2xl input">
-      <option value="">All Members</option>
-      {% for m in members %}
-        <option value="{{ m.id }}" {% if filter_person == m.id|string %}selected{% endif %}>{{ m.name }}</option>
-      {% endfor %}
-    </select>
-
-    <button class="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 text-sm">{{ t('common.filter') }}</button>
-    
-    {% if selected_month or selected_settle or filter_person or sort != 'month' %}
-      <a href="{{ url_for('archive') }}" class="px-4 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-sm">Clear</a>
-    {% endif %}
-    </form>
-
+<div class="flex flex-col items-center gap-6">
+  <!-- Header -->
+  <div class="flex flex-col items-center text-center gap-2 mb-2">
+    <h1 class="text-3xl sm:text-4xl font-bold">
+      <span class="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">{{ t('archive.title') }}</span>
+    </h1>
   </div>
-</div>
 
-<!-- Settle info if viewing a specific settle -->
-{% if selected_settle_info %}
-<div class="card rounded-3xl p-6 w-full max-w-lg mx-auto mb-6">
-  <div class="flex items-center justify-center gap-3 mb-4">
-    <svg class="w-6 h-6 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M21 8v13H3V8"/>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M1 3h22v5H1z"/>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M10 12h4"/>
-    </svg>
-    <h2 class="text-xl font-bold">{{ selected_settle_info.label }}</h2>
-  </div>
-  
-  <div class="grid grid-cols-2 gap-4 text-center">
-    <div class="soft rounded-2xl p-4">
-      <div class="text-xs text-slate-400 mb-1">Started</div>
-      <div class="text-sm font-semibold text-slate-200 ltr">{{ selected_settle_info.start }}</div>
+  <!-- Stats Card -->
+  <div class="card rounded-3xl p-8 w-full max-w-2xl text-center relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent"></div>
+    <div class="relative z-10">
+      <div class="text-sm font-medium text-slate-300 mb-3">{{ t('archive.total_archived') }}</div>
+      <div class="text-5xl sm:text-6xl font-black text-violet-400 mb-2">
+        <span class="ltr">{{ total_iqd|iqd }}</span>
+      </div>
+      {% set expense_label = t('archive.expense_count') %}
+      {% if lang == 'en' and archived|length != 1 %}
+        {% set expense_label = expense_label ~ 's' %}
+      {% endif %}
+      <div class="text-sm text-slate-400">{{ archived|length }} {{ expense_label }}</div>
     </div>
-    <div class="soft rounded-2xl p-4">
-      <div class="text-xs text-slate-400 mb-1">Settled</div>
-      <div class="text-sm font-semibold text-slate-200 ltr">
-        {% if selected_settle_info.settled_at %}
-          {{ selected_settle_info.settled_at.strftime('%Y-%m-%d %I:%M %p') }}
-        {% else %}
-          {{ selected_settle_info.end }}
+  </div>
+
+  <!-- Filter Card -->
+  <div class="w-full max-w-2xl card rounded-3xl p-5 sm:p-6">
+    <div class="flex items-center gap-3 mb-4">
+      <svg class="w-5 h-5 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+      </svg>
+      <span class="text-base font-semibold text-slate-100">{{ t('common.filter') }}</span>
+    </div>
+
+    <form id="archiveFilterForm" method="get" action="{{ url_for('archive') }}" class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center flex-wrap">
+      <select id="sortSel" name="sort" class="flex-1 min-w-0 h-12 px-4 rounded-2xl input text-sm">
+        <option value="settle" {% if sort=='settle' %}selected{% endif %}>{{ t('archive.sort_settle') }}</option>
+        <option value="person" {% if sort=='person' %}selected{% endif %}>{{ t('archive.sort_person') }}</option>
+      </select>
+
+      <select id="settleSel" name="settle" class="flex-1 min-w-0 h-12 px-4 rounded-2xl input text-sm {% if sort!='settle' %}hidden{% endif %}">
+        <option value="" {% if not selected_settle %}selected{% endif %}>{{ t('archive.all_settles') }}</option>
+        {% for s in settles %}
+          <option value="{{ s.id }}" {% if selected_settle==s.id %}selected{% endif %}>{{ s.label }}</option>
+        {% endfor %}
+      </select>
+
+      <select id="personSel" name="person" class="flex-1 min-w-0 h-12 px-4 rounded-2xl input text-sm {% if sort!='person' %}hidden{% endif %}">
+        <option value="" {% if not filter_person %}selected{% endif %}>{{ t('archive.all_members') }}</option>
+        {% for m in members %}
+          <option value="{{ m.id }}" {% if filter_person == m.id|string %}selected{% endif %}>{{ m.name }}</option>
+        {% endfor %}
+      </select>
+
+      <div class="flex gap-2">
+        <button type="submit" class="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition text-sm font-semibold text-white">
+          {{ t('common.filter') }}
+        </button>
+        {% if selected_settle or filter_person or sort != 'settle' %}
+          <a href="{{ url_for('archive') }}" class="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold text-center">
+            Clear
+          </a>
         {% endif %}
       </div>
+    </form>
+  </div>
+
+  <!-- Archived Expenses List -->
+  <div class="w-full max-w-2xl card rounded-3xl p-6 sm:p-8">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl sm:text-2xl font-bold">{{ t('archive.archived_expenses') }}</h2>
+      <div class="px-3 py-1 rounded-full bg-violet-500/20 text-violet-200 text-xs font-semibold">
+        {{ archived|length }} items
+      </div>
+    </div>
+
+    {% if archived|length == 0 %}
+      <div class="soft rounded-3xl p-8 text-center">
+        <svg class="w-16 h-16 mx-auto mb-4 text-slate-500/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+        </svg>
+        <p class="text-lg font-medium text-slate-200">{{ t('archive.no_archived') }}</p>
+        <p class="text-sm text-slate-400 mt-2">Settled expenses will appear here</p>
+      </div>
+    {% else %}
+      <div class="space-y-3">
+        {% for e in archived %}
+          <div class="soft rounded-2xl p-4 hover:bg-white/10 transition-all">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex items-start gap-3 min-w-0 flex-1">
+                <img src="{{ url_for('avatar', user_id=e.payer_id) }}" alt="{{ user_by_id[e.payer_id].name }}"
+                     class="h-10 w-10 rounded-full object-cover ring-2 ring-white/10 bg-white/5 shrink-0 mt-0.5">
+                <div class="min-w-0 flex-1">
+                  <div class="font-semibold text-base text-slate-100 truncate">{{ e.title }}</div>
+
+                  <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                    <span class="ltr">{{ e.expense_date }}</span>
+                    <span class="text-slate-500">•</span>
+                    <span>{{ user_by_id[e.payer_id].name }}</span>
+                  </div>
+
+                  <div class="flex flex-wrap gap-1.5 mt-2.5">
+                    {% set pids = parts_map.get(e.id, []) %}
+                    {% for pid in pids %}
+                      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/5 text-[11px]">
+                        <img src="{{ url_for('avatar', user_id=pid) }}" alt="{{ user_by_id[pid].name }}"
+                             class="h-3.5 w-3.5 rounded-full object-cover">
+                        <span class="font-medium text-slate-300">{{ user_by_id[pid].name }}</span>
+                      </span>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="shrink-0 text-end">
+                <div class="text-lg font-black text-slate-100"><span class="ltr">{{ e.amount_iqd|iqd }}</span></div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if is_owner %}
+  <!-- Settle Action Card -->
+  <div class="w-full max-w-2xl card rounded-3xl p-6 sm:p-8 relative overflow-hidden text-center">
+    <div class="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent"></div>
+    <div class="relative z-10">
+      <div class="flex items-center justify-center gap-2 mb-4">
+        <svg class="w-5 h-5 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div class="text-sm font-bold text-rose-300 uppercase tracking-wide">{{ t('archive.danger_zone') }}</div>
+      </div>
+
+      <h3 class="text-lg font-bold text-slate-100 mb-2">{{ t('archive.settle_active') }}</h3>
+      <p class="text-sm text-slate-300 mb-5">{{ t('archive.settle_help') }}</p>
+
+      <button type="button" id="openSettleModal"
+              class="w-full py-3 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 transition text-sm font-bold text-white shadow-lg shadow-rose-500/30">
+        {{ t('archive.settle_button') }}
+      </button>
     </div>
   </div>
+  {% endif %}
 </div>
-{% endif %}
 
 {% if is_owner %}
 <!-- Settle modal (password confirmation) -->
-<div id="settleModal" class="fixed inset-0 hidden items-center justify-center p-4 z-50">
-  <div id="settleBackdrop" class="absolute inset-0 bg-black/70"></div>
+<div id="settleModal" class="fixed inset-0 hidden items-center justify-center p-4 z-50" style="background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);">
+  <div id="settleBackdrop" class="absolute inset-0"></div>
 
-  <div class="relative w-full max-w-md card rounded-3xl p-6 text-start">
-    <div class="flex items-start justify-between gap-3">
+  <div class="relative w-full max-w-md card rounded-3xl p-6 transform transition-all duration-200" id="settleModalContent" style="opacity: 0; transform: scale(0.95);">
+    <div class="flex items-start justify-between gap-3 mb-4">
       <div>
         <div class="text-sm text-slate-300">{{ t('archive.confirm_action') }}</div>
         <h2 class="mt-1 text-xl font-semibold">{{ t('archive.settle_active') }}</h2>
-        <div class="mt-1 text-xs text-slate-300">
-          {{ t('archive.settle_help') }}
-        </div>
       </div>
       <button type="button" id="closeSettleModal"
-              class="px-2 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-xs">{{ t('common.cancel') }}</button>
+              class="p-2 rounded-xl bg-white/10 hover:bg-white/15 transition-colors">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
     </div>
 
-    <form class="mt-5 space-y-3" method="post" action="{{ url_for('settle') }}" id="settleForm">
+    <p class="text-sm text-slate-400 mb-5">{{ t('archive.settle_help') }}</p>
+
+    <form class="space-y-4" method="post" action="{{ url_for('settle') }}" id="settleForm">
       <div>
         <label class="text-sm text-slate-200">{{ t('archive.enter_password') }}</label>
         <div class="relative">
           <input id="settlePassword" name="password" type="password" required
-                 class="mt-1 w-full px-4 py-3 pr-12 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-rose-400"
+                 class="mt-1 w-full px-4 py-3 pr-12 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
                  placeholder="{{ t('common.password_placeholder') }}" />
           <button type="button" class="no-hover absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 transition outline-none" onclick="togglePassword('settlePassword', this)">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -107,17 +205,16 @@
             </svg>
           </button>
         </div>
-        <div class="mt-1 text-[11px] text-slate-400">
-          {{ t('archive.password_help') }}
-        </div>
+        <div class="mt-1 text-[11px] text-slate-400">{{ t('archive.password_help') }}</div>
+        <div id="settlePasswordError" class="mt-1 text-xs text-rose-400 hidden"></div>
       </div>
 
-      <div class="flex gap-2 justify-end">
+      <div class="flex gap-3 pt-2">
         <button type="button" id="cancelSettle"
-                class="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold">
+                class="flex-1 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition text-sm font-semibold">
           {{ t('common.cancel') }}
         </button>
-        <button class="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-sm font-semibold">
+        <button type="submit" class="flex-1 px-4 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-sm font-semibold text-white">
           {{ t('archive.confirm_settle') }}
         </button>
       </div>
@@ -126,112 +223,86 @@
 </div>
 {% endif %}
 
-<div class="mt-6 card rounded-3xl overflow-hidden">
-  <div class="p-5 sm:p-6 text-center border-b border-white/10">
-    <div class="text-sm text-slate-300">{{ t('archive.total_archived') }}</div>
-    <div class="mt-1 text-2xl font-black text-slate-100"><span class="ltr">{{ total_iqd|iqd }}</span></div>
-    {% set expense_label = t('archive.expense_count') %}
-    {% if lang == 'en' and archived|length != 1 %}
-      {% set expense_label = expense_label ~ 's' %}
-    {% endif %}
-    <div class="mt-1 text-xs text-slate-400">{{ archived|length }} {{ expense_label }}</div>
-  </div>
-
-  {% if archived|length == 0 %}
-    <div class="p-6 text-center text-slate-200">{{ t('archive.no_archived') }}</div>
-  {% else %}
-    <ul class="divide-y divide-white/10">
-      {% for e in archived %}
-        <li class="px-4 py-3 sm:px-5 sm:py-4 hover:bg-white/5 transition">
-          <div class="flex items-center justify-between gap-3">
-            <div class="min-w-0">
-              <div class="font-semibold text-sm sm:text-base truncate">{{ e.title }}</div>
-              <div class="mt-1 text-[11px] text-slate-300">
-                <span class="ltr">{{ e.expense_date }}</span> - {{ user_by_id[e.payer_id].name }}
-              </div>
-
-              <div class="mt-2 flex flex-wrap gap-1">
-                {% set pids = parts_map.get(e.id, []) %}
-                {% for pid in pids %}
-                  <span class="px-1.5 py-0.5 text-[11px] rounded-xl bg-white/5 border border-white/10">
-                    {{ user_by_id[pid].name }}
-                  </span>
-                {% endfor %}
-              </div>
-            </div>
-
-            <div class="shrink-0 text-end leading-tight">
-              <div class="text-base sm:text-lg font-black text-slate-100"><span class="ltr">{{ e.amount_iqd|iqd }}</span></div>
-            </div>
-          </div>
-        </li>
-      {% endfor %}
-    </ul>
-  {% endif %}
-</div>
-
-{% if is_owner %}
-<div class="mt-6 card rounded-3xl p-5 text-center w-full max-w-lg mx-auto">
-  <div class="text-sm text-slate-300">{{ t('archive.danger_zone') }}</div>
-  <div class="mt-2 text-lg font-semibold text-slate-100">{{ t('archive.settle_active') }}</div>
-  <div class="mt-1 text-xs text-slate-300">{{ t('archive.settle_help') }}</div>
-  <button type="button" id="openSettleModal"
-          class="mt-4 px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 transition text-sm font-semibold">
-    {{ t('archive.settle_button') }}
-  </button>
-</div>
-{% endif %}
-
 <script>
   (function () {
     const sortSel = document.getElementById('sortSel');
-    const monthSel = document.getElementById('monthSel');
     const settleSel = document.getElementById('settleSel');
-    if (!sortSel || !monthSel || !settleSel) return;
+    const personSel = document.getElementById('personSel');
+    if (!sortSel || !settleSel || !personSel) return;
 
     function sync() {
-      const v = (sortSel.value || 'month');
+      const v = (sortSel.value || 'settle');
       if (v === 'settle') {
         settleSel.classList.remove('hidden');
-        monthSel.classList.add('hidden');
-      } else if (v === 'month') {
-        monthSel.classList.remove('hidden');
-        settleSel.classList.add('hidden');
+        personSel.classList.add('hidden');
       } else {
-        // person sort - hide both
-        monthSel.classList.add('hidden');
+        personSel.classList.remove('hidden');
         settleSel.classList.add('hidden');
       }
     }
     sortSel.addEventListener('change', sync);
     sync();
+
+    // Handle filter form with AJAX navigation
+    const filterForm = document.getElementById('archiveFilterForm');
+    if (filterForm) {
+      filterForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(filterForm);
+        const params = new URLSearchParams(formData);
+        const url = filterForm.action + '?' + params.toString();
+        navigate(url, { push: true });
+      });
+    }
   })();
 
   (function () {
     const openBtn = document.getElementById('openSettleModal');
     const modal = document.getElementById('settleModal');
+    const modalContent = document.getElementById('settleModalContent');
     const backdrop = document.getElementById('settleBackdrop');
     const closeBtn = document.getElementById('closeSettleModal');
     const cancelBtn = document.getElementById('cancelSettle');
     const pass = document.getElementById('settlePassword');
+    const settleForm = document.getElementById('settleForm');
 
     if (!openBtn || !modal) return;
 
     function open() {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
-      // Reset password field every time
+      document.body.style.overflow = 'hidden';
+
+      // Animate in
+      requestAnimationFrame(() => {
+        if (modalContent) {
+          modalContent.style.opacity = '1';
+          modalContent.style.transform = 'scale(1)';
+        }
+      });
+
+      // Reset password field and clear errors
       if (pass) {
         pass.value = '';
+        pass.classList.remove('field-error', 'shake');
         setTimeout(() => pass.focus(), 50);
       }
-      document.body.style.overflow = 'hidden';
+      const passError = document.getElementById('settlePasswordError');
+      if (passError) passError.classList.add('hidden');
     }
 
     function close() {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      document.body.style.overflow = '';
+      // Animate out
+      if (modalContent) {
+        modalContent.style.opacity = '0';
+        modalContent.style.transform = 'scale(0.95)';
+      }
+
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+      }, 200);
     }
 
     openBtn.addEventListener('click', open);
@@ -242,6 +313,71 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
     });
+
+    // Handle settle form with AJAX
+    if (settleForm) {
+      const passwordInput = document.getElementById('settlePassword');
+      const passwordError = document.getElementById('settlePasswordError');
+
+      settleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Clear previous errors
+        if (passwordInput && passwordError) {
+          passwordInput.classList.remove('field-error', 'shake');
+          passwordError.classList.add('hidden');
+        }
+
+        // Check if form is valid (password is required)
+        if (!settleForm.checkValidity()) {
+          settleForm.reportValidity();
+          return;
+        }
+
+        const submitBtn = settleForm.querySelector('button[type="submit"]');
+        if (!submitBtn) return;
+
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Settling...';
+
+        await submitFormAjax(settleForm, {
+          onSuccess: () => {
+            close();
+            navigate(window.location.href, { push: false });
+          },
+          onRedirect: async (url) => {
+            // Check if redirected back to archive page without settle params (indicates error)
+            const urlObj = new URL(url, window.location.origin);
+            const isArchivePage = urlObj.pathname === '/archive' || urlObj.pathname.endsWith('/archive');
+            const hasSettleParam = urlObj.searchParams.has('settle');
+
+            if (isArchivePage && !hasSettleParam) {
+              // Settle failed (redirected back without settle param) - show error
+              if (passwordInput && passwordError) {
+                passwordInput.classList.add('field-error', 'shake');
+                passwordError.textContent = 'Incorrect password';
+                passwordError.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+
+                setTimeout(() => {
+                  passwordInput.classList.remove('shake');
+                }, 300);
+              }
+            } else {
+              // Settle successful, close modal and navigate
+              close();
+              navigate(url, { push: false });
+            }
+          },
+          onError: () => {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+          }
+        });
+      });
+    }
   })();
 </script>
 

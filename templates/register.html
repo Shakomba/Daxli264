@@ -15,15 +15,12 @@
     75% { transform: translateX(-3px); }
     100% { transform: translateX(0); }
   }
+  .field-error {
+    border-color: #FF453A !important;
+    box-shadow: 0 0 0 2px rgba(255, 69, 58, 0.4) !important;
+  }
 </style>
 <div class="flex flex-col items-center gap-8">
-  <div class="flex flex-col items-center gap-4 text-center">
-    <div class="h-24 w-24 rounded-3xl overflow-hidden bg-white/5 ring-2 ring-white/10 shadow-2xl">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-cover">
-    </div>
-    <div class="text-4xl font-bold leading-tight">{{ t('app.name') }}</div>
-  </div>
-
   <div class="card rounded-3xl p-8 w-full max-w-xl text-center">
     <h1 class="text-3xl font-bold">{{ t('register.title') }}</h1>
 
@@ -33,14 +30,6 @@
       {% endif %}
 
       <div class="text-start">
-        <label class="text-sm text-slate-200">{{ t('register.name_label') }}</label>
-        <input id="registerName" name="name" type="text" autocomplete="name"
-               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
-               placeholder="{{ t('register.name_placeholder') }}" />
-        <div id="nameError" class="mt-1 text-xs text-rose-400 hidden"></div>
-      </div>
-
-      <div class="text-start">
         <label class="text-sm text-slate-200">{{ t('register.email_label') }}</label>
         <input id="registerEmail" name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false"
                class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
@@ -48,92 +37,45 @@
         <div id="emailError" class="mt-1 text-xs text-rose-400 hidden"></div>
       </div>
 
-    <div class="text-start">
-      <label class="text-sm text-slate-200">{{ t('register.password_label') }}</label>
-      <div class="relative">
-        <input id="registerPassword" name="password" type="password" autocomplete="new-password"
-               data-min-length="{{ password_min_length }}"
-               class="mt-1 w-full px-4 py-3 pr-12 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
-               placeholder="{{ t('register.password_placeholder') }}" aria-describedby="passwordRequirements" />
-        <button type="button" class="no-hover absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 transition outline-none" onclick="togglePassword('registerPassword', this)">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-            <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-            <path class="eye-closed hidden" stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.584 10.587a2 2 0 002.828 2.83M9.363 5.365A9.466 9.466 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.716 9.716 0 01-1.676 2.635m-1.224 1.224A9.467 9.467 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.716 9.716 0 011.676-2.635"/>
-          </svg>
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('register.password_label') }}</label>
+        <div class="relative">
+          <input id="registerPassword" name="password" type="password" autocomplete="new-password"
+                 class="mt-1 w-full px-4 py-3 pr-12 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
+                 placeholder="{{ t('register.password_placeholder') }}" />
+          <button type="button" class="no-hover absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 transition outline-none" onclick="togglePassword('registerPassword', this)">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              <path class="eye-closed hidden" stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.584 10.587a2 2 0 002.828 2.83M9.363 5.365A9.466 9.466 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.716 9.716 0 01-1.676 2.635m-1.224 1.224A9.467 9.467 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.716 9.716 0 011.676-2.635"/>
+            </svg>
+          </button>
+        </div>
+        <div id="passwordFieldError" class="mt-1 text-xs text-rose-400 hidden"></div>
+      </div>
+
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('register.confirm_password_label') }}</label>
+        <div class="relative">
+          <input id="registerConfirmPassword" name="confirm_password" type="password" autocomplete="new-password"
+                 class="mt-1 w-full px-4 py-3 pr-12 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
+                 placeholder="{{ t('register.password_placeholder') }}" />
+          <button type="button" class="no-hover absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 transition outline-none" onclick="togglePassword('registerConfirmPassword', this)">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              <path class="eye-closed hidden" stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.584 10.587a2 2 0 002.828 2.83M9.363 5.365A9.466 9.466 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.716 9.716 0 01-1.676 2.635m-1.224 1.224A9.467 9.467 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.716 9.716 0 011.676-2.635"/>
+            </svg>
+          </button>
+        </div>
+        <div id="confirmPasswordError" class="mt-1 text-xs text-rose-400 hidden"></div>
+      </div>
+
+      <div class="pt-2">
+        <button type="submit" class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
+          {{ t('register.button') }}
         </button>
       </div>
-      <div id="passwordFieldError" class="mt-1 text-xs text-rose-400 hidden"></div>
-    </div>
-
-    <div class="text-start">
-      <label class="text-sm text-slate-200">{{ t('register.confirm_password_label') }}</label>
-      <div class="relative">
-        <input id="registerConfirmPassword" name="confirm_password" type="password" autocomplete="new-password"
-               class="mt-1 w-full px-4 py-3 pr-12 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
-               placeholder="{{ t('register.password_placeholder') }}" />
-        <button type="button" class="no-hover absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 transition outline-none" onclick="togglePassword('registerConfirmPassword', this)">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-            <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-            <path class="eye-closed hidden" stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.584 10.587a2 2 0 002.828 2.83M9.363 5.365A9.466 9.466 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.716 9.716 0 01-1.676 2.635m-1.224 1.224A9.467 9.467 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.716 9.716 0 011.676-2.635"/>
-          </svg>
-        </button>
-      </div>
-      <div id="confirmPasswordError" class="mt-1 text-xs text-rose-400 hidden"></div>
-    </div>
-
-    <div id="passwordRequirements" hidden
-         class="w-full text-start text-sm transition-all duration-200 ease-out opacity-0 max-h-0 scale-95 overflow-hidden pointer-events-none"
-         aria-hidden="true">
-      <div class="text-white font-semibold">
-        {{ t('register.password_rules_title') }}
-      </div>
-      <ul class="mt-2 space-y-1">
-        <li class="password-req flex items-center gap-2 transition-colors duration-200"
-            data-requirement="length" data-met="false">
-          <span class="relative inline-flex h-4 w-4 items-center justify-center">
-            <svg data-icon="check" class="absolute h-4 w-4 opacity-0 scale-75 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l3 3 7-7" />
-            </svg>
-            <svg data-icon="x" class="absolute h-4 w-4 opacity-100 scale-100 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
-            </svg>
-          </span>
-          <span>{{ t('register.password_rule_length', min_len=password_min_length) }}</span>
-        </li>
-        <li class="password-req flex items-center gap-2 transition-colors duration-200"
-            data-requirement="letter" data-met="false">
-          <span class="relative inline-flex h-4 w-4 items-center justify-center">
-            <svg data-icon="check" class="absolute h-4 w-4 opacity-0 scale-75 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l3 3 7-7" />
-            </svg>
-            <svg data-icon="x" class="absolute h-4 w-4 opacity-100 scale-100 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
-            </svg>
-          </span>
-          <span>{{ t('register.password_rule_letter') }}</span>
-        </li>
-        <li class="password-req flex items-center gap-2 transition-colors duration-200"
-            data-requirement="number" data-met="false">
-          <span class="relative inline-flex h-4 w-4 items-center justify-center">
-            <svg data-icon="check" class="absolute h-4 w-4 opacity-0 scale-75 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l3 3 7-7" />
-            </svg>
-            <svg data-icon="x" class="absolute h-4 w-4 opacity-100 scale-100 transition-all duration-200" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
-            </svg>
-          </span>
-          <span>{{ t('register.password_rule_number') }}</span>
-        </li>
-      </ul>
-    </div>
-
-    <div class="pt-2">
-      <button class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
-        {{ t('register.button') }}
-      </button>
-    </div>
     </form>
 
     <div class="mt-4 text-sm text-slate-300">
@@ -141,24 +83,6 @@
          href="{{ url_for('login', next=request.args.get('next')) }}">{{ t('register.have_account') }}</a>
     </div>
   </div>
-</div>
-
-<style>
-  .field-error {
-    border-color: #FF453A !important;
-    box-shadow: 0 0 0 2px rgba(255, 69, 58, 0.4) !important;
-  }
-
-  .shake {
-    animation: shake 0.28s ease-in-out;
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-8px); }
-    75% { transform: translateX(8px); }
-  }
-</style>
 
 <script>
   // Empty field validation
@@ -167,7 +91,6 @@
     if (!form) return;
 
     const fields = [
-      { input: document.getElementById('registerName'), error: document.getElementById('nameError'), message: 'Please enter your name' },
       { input: document.getElementById('registerEmail'), error: document.getElementById('emailError'), message: 'Please enter your email' },
       { input: document.getElementById('registerPassword'), error: document.getElementById('passwordFieldError'), message: 'Please enter a password' },
       { input: document.getElementById('registerConfirmPassword'), error: document.getElementById('confirmPasswordError'), message: 'Please confirm your password' }
@@ -200,7 +123,8 @@
     });
 
     // Validate on submit
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
       let firstEmptyField = null;
       let allValid = true;
 
@@ -215,146 +139,28 @@
       });
 
       if (!allValid) {
-        e.preventDefault();
         if (firstEmptyField) {
           firstEmptyField.focus();
         }
         return false;
       }
-    });
-  })();
 
-  // Password strength validation
-  (function () {
-    const passwordInput = document.getElementById('registerPassword');
-    const confirmInput = document.getElementById('registerConfirmPassword');
-    const panel = document.getElementById('passwordRequirements');
-    if (!passwordInput || !confirmInput || !panel) return;
+      // Submit with AJAX
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating account...';
 
-    const minLength = parseInt(passwordInput.getAttribute('data-min-length') || '8', 10);
-    const items = {
-      length: panel.querySelector('[data-requirement="length"]'),
-      letter: panel.querySelector('[data-requirement="letter"]'),
-      number: panel.querySelector('[data-requirement="number"]'),
-    };
-    const colors = {
-      met: '#32D74B',
-      unmet: '#FF453A',
-    };
-
-    const tests = {
-      letter: (value) => /[A-Za-z]/.test(value),
-      number: (value) => /\d/.test(value),
-      length: (value) => value.length >= minLength,
-    };
-
-    const openClasses = ['opacity-100', 'max-h-40', 'scale-100', 'pointer-events-auto'];
-    const closedClasses = ['opacity-0', 'max-h-0', 'scale-95', 'pointer-events-none'];
-    let panelOpened = false;
-    let showErrors = false;
-
-    function setPanelOpen() {
-      if (panelOpened) return;
-      panelOpened = true;
-      panel.setAttribute('aria-hidden', 'false');
-      if (panel.hasAttribute('hidden')) {
-        panel.removeAttribute('hidden');
-      }
-      window.requestAnimationFrame(() => {
-        panel.classList.remove(...closedClasses);
-        panel.classList.add(...openClasses);
-      });
-    }
-
-    function setRequirementState(el, isMet) {
-      if (!el) return;
-      el.dataset.met = isMet ? 'true' : 'false';
-      el.style.color = isMet ? colors.met : colors.unmet;
-
-      const iconCheck = el.querySelector('[data-icon="check"]');
-      const iconX = el.querySelector('[data-icon="x"]');
-
-      if (iconCheck && iconX) {
-        iconCheck.classList.toggle('opacity-100', isMet);
-        iconCheck.classList.toggle('scale-100', isMet);
-        iconCheck.classList.toggle('opacity-0', !isMet);
-        iconCheck.classList.toggle('scale-75', !isMet);
-
-        iconX.classList.toggle('opacity-100', !isMet);
-        iconX.classList.toggle('scale-100', !isMet);
-        iconX.classList.toggle('opacity-0', isMet);
-        iconX.classList.toggle('scale-75', isMet);
-      }
-    }
-
-    function setInvalidState(isInvalid) {
-      const inputs = [passwordInput, confirmInput];
-      inputs.forEach((el) => {
-        el.classList.toggle('password-invalid', isInvalid);
-      });
-    }
-
-    function triggerShake() {
-      const inputs = [passwordInput, confirmInput];
-      inputs.forEach((el) => {
-        el.classList.remove('shake');
-        void el.offsetWidth;
-        el.classList.add('shake');
-      });
-    }
-
-    function updateRequirements() {
-      const value = passwordInput.value || '';
-      const state = {
-        length: tests.length(value),
-        letter: tests.letter(value),
-        number: tests.number(value),
-      };
-
-      Object.keys(state).forEach((key) => {
-        setRequirementState(items[key], state[key]);
-      });
-
-      const allMet = state.length && state.letter && state.number;
-      if (showErrors) {
-        setInvalidState(!allMet);
-      }
-      return allMet;
-    }
-
-    function handleFocus() {
-      setPanelOpen();
-      updateRequirements();
-      
-      // Scroll the requirements panel into view on mobile after a short delay
-      setTimeout(() => {
-        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 300);
-    }
-
-    [passwordInput, confirmInput].forEach((el) => {
-      el.addEventListener('focus', handleFocus);
-      el.addEventListener('animationend', () => el.classList.remove('shake'));
-    });
-
-    passwordInput.addEventListener('input', updateRequirements);
-    confirmInput.addEventListener('input', updateRequirements);
-
-    const form = passwordInput.form;
-    if (form) {
-      form.addEventListener('submit', (e) => {
-        setPanelOpen();
-        const allMet = updateRequirements();
-        if (!allMet) {
-          showErrors = true;
-          setInvalidState(true);
-          triggerShake();
-          e.preventDefault();
+      await submitFormAjax(form, {
+        onRedirect: (url) => {
+          window.location.href = url;
+        },
+        onError: () => {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
         }
       });
-    }
-
-    updateRequirements();
+    });
   })();
 </script>
 {% endblock %}

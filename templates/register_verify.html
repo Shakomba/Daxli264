@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="flex flex-col items-center gap-8">
-  <div class="card rounded-3xl p-8 max-w-xl mx-auto text-center">
+  <div class="card rounded-3xl p-8 w-full max-w-md text-center">
     <div class="mb-6">
-      <svg class="w-20 h-20 mx-auto text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <svg class="w-16 h-16 mx-auto text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
       </svg>
     </div>
-    <h1 class="text-3xl font-bold">{{ t('verify.title') }}</h1>
-    <p class="mt-3 text-base text-slate-300">{{ t('verify.subtitle', email=current_user.email) }}</p>
-    <p class="mt-2 text-sm text-slate-400">{{ t('verify.help') }}</p>
+    <h1 class="text-3xl font-bold">{{ t('register.verify_step_title') }}</h1>
+    <p class="mt-2 text-slate-400">{{ t('register.verify_step_subtitle') }}</p>
+    <p class="mt-1 text-sm text-violet-300">{{ email }}</p>
 
-    <form id="verifyCodeForm" method="post" action="{{ url_for('verify_code') }}" class="mt-8">
+    <form id="verifyForm" class="mt-8" method="post" action="{{ url_for('register_verify_post') }}">
       <div class="flex justify-center gap-2 sm:gap-3" dir="ltr">
         {% for i in range(6) %}
           <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"
@@ -29,23 +29,20 @@
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span>Verifying...</span>
+          <span>{{ t('verify.verifying') }}</span>
         </div>
       </div>
     </form>
 
     <div class="mt-8 space-y-3">
-      <p class="text-sm text-slate-400">
-        {{ t('verify.didnt_receive') }}
-      </p>
-      <form method="post" action="{{ url_for('resend_verification') }}">
+      <p class="text-sm text-slate-400">{{ t('verify.didnt_receive') }}</p>
+      <form method="post" action="{{ url_for('register_resend_code') }}">
         <button type="submit" class="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/15 transition font-semibold">
           {{ t('verify.resend_button') }}
         </button>
       </form>
-      <a class="inline-flex items-center justify-center w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 transition text-sm font-medium text-slate-300"
-         href="{{ url_for('logout') }}">
-        {{ t('verify.logout_button') }}
+      <a href="{{ url_for('register') }}" class="inline-flex items-center justify-center w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 transition text-sm font-medium text-slate-300">
+        {{ t('register.change_email') }}
       </a>
     </div>
   </div>
@@ -55,20 +52,17 @@
   (function() {
     const inputs = document.querySelectorAll('.code-input');
     const hiddenInput = document.getElementById('codeHidden');
-    const form = document.getElementById('verifyCodeForm');
+    const form = document.getElementById('verifyForm');
     const errorDiv = document.getElementById('verifyError');
     const verifyingIndicator = document.getElementById('verifyingIndicator');
 
     if (!inputs.length || !form) return;
 
-    // Focus first input on load
     setTimeout(() => inputs[0].focus(), 100);
 
     function updateHiddenInput() {
       let code = '';
-      inputs.forEach(input => {
-        code += input.value;
-      });
+      inputs.forEach(input => { code += input.value; });
       hiddenInput.value = code;
       return code;
     }
@@ -102,34 +96,27 @@
         const response = await fetch(form.action, {
           method: 'POST',
           body: formData,
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-          }
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
 
-        if (response.redirected) {
-          window.location.href = response.url;
+        const data = await response.json();
+
+        if (response.ok && data.redirect) {
+          window.location.href = data.redirect;
           return;
         }
 
-        // If not redirected, there was an error
-        const text = await response.text();
-
-        // Check if response contains error flash message
-        if (text.includes('verification_code_invalid') || text.includes('incorrect') || response.status >= 400) {
-          showError('{{ t("flash.verification_code_invalid") }}');
+        if (data.error) {
+          showError(data.error);
           inputs.forEach(input => {
             input.disabled = false;
             input.value = '';
           });
           inputs[0].focus();
           verifyingIndicator.classList.add('hidden');
-        } else {
-          // Redirect to the response URL
-          window.location.href = response.url || '{{ url_for("dashboard") }}';
         }
       } catch (err) {
-        showError('Something went wrong. Please try again.');
+        showError('{{ t("common.something_went_wrong") }}');
         inputs.forEach(input => {
           input.disabled = false;
           input.value = '';
@@ -143,19 +130,13 @@
       input.addEventListener('input', (e) => {
         clearError();
         const value = e.target.value;
-
-        // Only allow digits
         if (!/^\d*$/.test(value)) {
           e.target.value = value.replace(/\D/g, '');
           return;
         }
-
-        // If a digit was entered, move to next input
         if (value.length === 1 && index < inputs.length - 1) {
           inputs[index + 1].focus();
         }
-
-        // Check if all inputs are filled
         const code = updateHiddenInput();
         if (code.length === 6) {
           submitCode();
@@ -163,13 +144,10 @@
       });
 
       input.addEventListener('keydown', (e) => {
-        // Handle backspace
         if (e.key === 'Backspace' && !e.target.value && index > 0) {
           inputs[index - 1].focus();
           inputs[index - 1].value = '';
         }
-
-        // Handle arrow keys
         if (e.key === 'ArrowLeft' && index > 0) {
           e.preventDefault();
           inputs[index - 1].focus();
@@ -180,27 +158,19 @@
         }
       });
 
-      // Handle paste
       input.addEventListener('paste', (e) => {
         e.preventDefault();
         const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-
         if (pastedData.length > 0) {
           pastedData.split('').forEach((char, i) => {
-            if (inputs[i]) {
-              inputs[i].value = char;
-            }
+            if (inputs[i]) inputs[i].value = char;
           });
-
-          // Focus the next empty input or the last one
           const nextEmpty = Array.from(inputs).findIndex(inp => !inp.value);
           if (nextEmpty !== -1) {
             inputs[nextEmpty].focus();
           } else {
             inputs[inputs.length - 1].focus();
           }
-
-          // Check if all inputs are filled
           const code = updateHiddenInput();
           if (code.length === 6) {
             submitCode();
@@ -208,13 +178,9 @@
         }
       });
 
-      // Select all on focus
-      input.addEventListener('focus', () => {
-        input.select();
-      });
+      input.addEventListener('focus', () => input.select());
     });
 
-    // Prevent form submission (we handle it via AJAX)
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       submitCode();

@@ -3,7 +3,16 @@
 <style>
   .field-error {
     border-color: #FF453A !important;
-    box-shadow: 0 0 0 2px rgba(255, 69, 58, 0.4) !important;
+    outline: 2px solid rgba(255, 69, 58, 0.4) !important;
+    outline-offset: 0px !important;
+  }
+  .field-error:focus {
+    outline: 2px solid rgba(255, 69, 58, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.2) !important;
+  }
+  .field-error::selection {
+    background-color: rgba(255, 69, 58, 0.5) !important;
+    color: #ffffff !important;
   }
   .shake {
     animation: shake 0.28s ease-in-out;
@@ -78,18 +87,18 @@
     const emailError = document.getElementById('emailError');
     const passwordError = document.getElementById('passwordError');
     
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
       let hasError = false;
-      
+
       // Clear previous errors
       emailInput.classList.remove('field-error', 'shake');
       passwordInput.classList.remove('field-error', 'shake');
       emailError.classList.add('hidden');
       passwordError.classList.add('hidden');
-      
+
       // Validate email
       if (!emailInput.value.trim()) {
-        e.preventDefault();
         emailInput.classList.add('field-error', 'shake');
         emailError.textContent = 'Email is required';
         emailError.classList.remove('hidden');
@@ -98,10 +107,9 @@
           hasError = true;
         }
       }
-      
+
       // Validate password
       if (!passwordInput.value) {
-        e.preventDefault();
         passwordInput.classList.add('field-error', 'shake');
         passwordError.textContent = 'Password is required';
         passwordError.classList.remove('hidden');
@@ -110,12 +118,48 @@
           hasError = true;
         }
       }
-      
+
       // Remove shake animation after it completes
       setTimeout(() => {
         emailInput.classList.remove('shake');
         passwordInput.classList.remove('shake');
       }, 300);
+
+      if (hasError) return;
+
+      // Submit with AJAX
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Logging in...';
+
+      await submitFormAjax(form, {
+        onRedirect: async (url) => {
+          // If redirected back to login page, it means login failed
+          const urlObj = new URL(url, window.location.origin);
+          if (urlObj.pathname === '/login' || urlObj.pathname.endsWith('/login')) {
+            // Login failed - show error
+            passwordInput.classList.add('field-error', 'shake');
+            emailInput.classList.add('field-error', 'shake');
+            passwordError.textContent = 'Incorrect email or password';
+            passwordError.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+
+            setTimeout(() => {
+              passwordInput.classList.remove('shake');
+              emailInput.classList.remove('shake');
+            }, 300);
+          } else {
+            // Login successful, proceed with redirect
+            window.location.href = url;
+          }
+        },
+        onError: () => {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      });
     });
   })();
 </script>

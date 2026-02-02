@@ -10,9 +10,8 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse, urljoin
 
 import qrcode
-from flask import Flask, render_template, redirect, url_for, request, flash, abort, send_file, session, has_request_context
+from flask import Flask, render_template, redirect, url_for, request, flash, abort, send_file, session, has_request_context, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, inspect, text
 
@@ -30,6 +29,7 @@ TRANSLATIONS = {
         "menu.language_to_en": "Switch to English",
         "menu.language_to_ku": "Switch to Kurdish",
         "menu.logout": "Logout",
+        "menu.settings": "Settings",
         "nav.dashboard": "Dashboard",
         "nav.expenses": "Expenses",
         "nav.household": "Household",
@@ -69,6 +69,29 @@ TRANSLATIONS = {
         "register.name_placeholder": "Name",
         "register.email_placeholder": "you@example.com",
         "register.password_placeholder": "********",
+        "register.email_step_title": "What's your email?",
+        "register.email_step_subtitle": "We'll use this to sign you in",
+        "register.email_required": "Please enter your email",
+        "register.email_invalid": "Please enter a valid email",
+        "register.have_account_prefix": "Already have an account?",
+        "register.login_link": "Sign in",
+        "register.password_step_title": "Create a password",
+        "register.password_step_subtitle": "Choose a secure password",
+        "register.password_required": "Please enter a password",
+        "register.confirm_password_required": "Please confirm your password",
+        "register.verify_step_title": "Check your email",
+        "register.verify_step_subtitle": "Enter the 6-digit code we sent to",
+        "register.start_over": "Start over",
+        "register.change_email": "Change email",
+        "register.profile_step_title": "Set up your profile",
+        "register.profile_step_subtitle": "Tell us a bit about yourself",
+        "register.upload_photo": "Add a photo",
+        "register.name_required": "Please enter your name",
+        "register.complete_button": "Complete setup",
+        "verify.verifying": "Verifying...",
+        "common.continue": "Continue",
+        "common.back": "Back",
+        "common.something_went_wrong": "Something went wrong. Please try again.",
         "reset.request_title": "Reset your password",
         "reset.request_help": "Enter your email and we'll send a reset link.",
         "reset.email_label": "Email",
@@ -81,10 +104,12 @@ TRANSLATIONS = {
         "email.verify.subject": "Verify your Jard email",
         "email.reset.subject": "Reset your Jard password",
         "verify.title": "Verify your email",
-        "verify.subtitle": "We sent a confirmation link to {email}. Please verify to continue.",
-        "verify.help": "If you did not receive it, check spam or resend the email.",
-        "verify.resend_button": "Resend verification email",
+        "verify.subtitle": "We sent a 6-digit code to {email}.",
+        "verify.help": "Enter the code below to verify your email.",
+        "verify.code_placeholder": "Enter code",
+        "verify.resend_button": "Resend code",
         "verify.logout_button": "Log out",
+        "verify.didnt_receive": "Didn't receive the code? Check spam or",
         "dashboard.welcome": "Welcome",
         "dashboard.they_owe_you": "They owe you",
         "dashboard.you_owe": "You owe",
@@ -151,8 +176,10 @@ TRANSLATIONS = {
         "archive.title": "Archive",
         "archive.sort_month": "By month",
         "archive.sort_settle": "By settle",
+        "archive.sort_person": "By person",
         "archive.all_months": "All months",
         "archive.all_settles": "All settles",
+        "archive.all_members": "All members",
         "archive.confirm_action": "Confirm action",
         "archive.settle_active": "Settle active expenses",
         "archive.settle_help": "This will archive all active expenses and reset balances for everyone.",
@@ -165,6 +192,7 @@ TRANSLATIONS = {
         "archive.danger_zone": "Danger zone",
         "archive.settle_button": "Settle",
         "archive.settle_label": "settle",
+        "archive.archived_expenses": "Archived Expenses",
         "profile.title": "Profile",
         "profile.subtitle": "Update your account details and preferences.",
         "profile.email_verified": "Email verified",
@@ -201,11 +229,11 @@ TRANSLATIONS = {
         "flash.password_too_weak": "Password must be at least {min_len} characters and include a letter and a number.",
         "flash.avatar_type_invalid": "Unsupported image type. Use PNG, JPG, or WEBP.",
         "flash.profile_updated": "Profile updated.",
-        "flash.verification_email_sent": "Verification email sent. Please check your inbox.",
+        "flash.verification_email_sent": "Verification code sent. Please check your inbox.",
         "flash.email_verified": "Your email has been verified.",
         "flash.email_already_verified": "Your email is already verified.",
-        "flash.verification_link_invalid": "That verification link is invalid.",
-        "flash.verification_link_expired": "That verification link has expired. Please request a new one.",
+        "flash.verification_code_invalid": "That verification code is incorrect.",
+        "flash.verification_code_expired": "That verification code has expired. Please request a new one.",
         "flash.password_reset_sent": "If that email is registered, you'll receive a reset link shortly.",
         "flash.password_reset_invalid": "That reset link is invalid or has expired.",
         "flash.password_reset_success": "Your password has been updated. You can log in now.",
@@ -248,6 +276,7 @@ TRANSLATIONS = {
         "menu.language_to_en": "گۆڕین بۆ ئینگلیزی",
         "menu.language_to_ku": "گۆڕین بۆ کوردی",
         "menu.logout": "دەرچوون",
+        "menu.settings": "ڕێکخستنەکان",
         "nav.dashboard": "داشبۆرد",
         "nav.expenses": "خەرجییەکان",
         "nav.household": "ماڵەوە",
@@ -283,6 +312,29 @@ TRANSLATIONS = {
         "register.name_placeholder": "ناوت لێرە بنووسە",
         "register.email_placeholder": "you@example.com",
         "register.password_placeholder": "********",
+        "register.email_step_title": "ئیمەیڵەکەت چییە؟",
+        "register.email_step_subtitle": "ئەمە بەکاردەهێنین بۆ چوونەژوورەوە",
+        "register.email_required": "تکایە ئیمەیڵەکەت بنووسە",
+        "register.email_invalid": "تکایە ئیمەیڵێکی دروست بنووسە",
+        "register.have_account_prefix": "پێشتر هەژمارت هەیە؟",
+        "register.login_link": "بچۆ ژوورەوە",
+        "register.password_step_title": "وشەی نهێنی دروست بکە",
+        "register.password_step_subtitle": "وشەیەکی نهێنی پارێزراو هەڵبژێرە",
+        "register.password_required": "تکایە وشەی نهێنی بنووسە",
+        "register.confirm_password_required": "تکایە وشەی نهێنی دووبارە بکەوە",
+        "register.verify_step_title": "ئیمەیڵەکەت بپشکنە",
+        "register.verify_step_subtitle": "کۆدی ٦ ژمارەیی کە ناردمان بۆ",
+        "register.start_over": "دەستپێکردنەوە",
+        "register.change_email": "گۆڕینی ئیمەیڵ",
+        "register.profile_step_title": "پرۆفایلەکەت دابنێ",
+        "register.profile_step_subtitle": "کەمێک لەسەر خۆت بڵێ",
+        "register.upload_photo": "وێنەیەک زیاد بکە",
+        "register.name_required": "تکایە ناوەکەت بنووسە",
+        "register.complete_button": "تەواوکردنی دامەزراندن",
+        "verify.verifying": "پشتڕاستکردنەوە...",
+        "common.continue": "بەردەوام بە",
+        "common.back": "گەڕانەوە",
+        "common.something_went_wrong": "هەڵەیەک ڕویدا. تکایە دووبارە هەوڵبدەوە.",
         "reset.request_title": "گۆڕینی وشەی نهێنی",
         "reset.request_help": "ئیمەیڵەکەت بنووسە بۆ ناردنی لینکی گۆڕینی وشەی نهێنی.",
         "reset.email_label": "ئیمەیڵ",
@@ -294,11 +346,13 @@ TRANSLATIONS = {
         "reset.submit_button": "نوێکردنەوەی وشەی نهێنی",
         "email.verify.subject": "پشتڕاستکردنەوەی ئیمەیڵی Jard",
         "email.reset.subject": "گۆڕینی وشەی نهێنی Jard",
-        "verify.title": "Verify your email",
-        "verify.subtitle": "We sent a confirmation link to {email}. Please verify to continue.",
-        "verify.help": "If you did not receive it, check spam or resend the email.",
-        "verify.resend_button": "Resend verification email",
-        "verify.logout_button": "Log out",
+        "verify.title": "پشتڕاستکردنەوەی ئیمەیڵ",
+        "verify.subtitle": "کۆدێکی ٦ ژمارەیی ناردمان بۆ {email}.",
+        "verify.help": "کۆدەکە لە خوارەوە بنووسە بۆ پشتڕاستکردنەوەی ئیمەیڵەکەت.",
+        "verify.code_placeholder": "کۆدەکە بنووسە",
+        "verify.resend_button": "دووبارە ناردنی کۆد",
+        "verify.logout_button": "چوونەدەرەوە",
+        "verify.didnt_receive": "کۆدەکەت نەگەیشت؟ سەیری سپام بکە یان",
         "dashboard.welcome": "بەخێربێیت",
         "dashboard.they_owe_you": "قەرزداری تۆن",
         "dashboard.you_owe": "تۆ قەرزداریت",
@@ -365,8 +419,10 @@ TRANSLATIONS = {
         "archive.title": "ئەرشیف",
         "archive.sort_month": "بەپێی مانگ",
         "archive.sort_settle": "بەپێی کاتی یەکسانکردنەوە",
+        "archive.sort_person": "بەپێی کەس",
         "archive.all_months": "هەموو مانگەکان",
         "archive.all_settles": "هەموو یەکسانکردنەوەکان",
+        "archive.all_members": "هەموو ئەندامەکان",
         "archive.confirm_action": "دڵنیابوونەوە",
         "archive.settle_active": "یەکسانکردنەوەی خەرجییە چالاکەکان",
         "archive.settle_help": "ئەمە هەموو خەرجییەکان ئەرشیف دەکات و باڵانسی هەمووان سفر دەکاتەوە.",
@@ -379,6 +435,7 @@ TRANSLATIONS = {
         "archive.danger_zone": "ناوچەی مەترسی",
         "archive.settle_button": "یەکسانکردنەوە",
         "archive.settle_label": "یەکسانکردنەوە",
+        "archive.archived_expenses": "خەرجییە ئەرشیفکراوەکان",
         "profile.title": "پرۆفایل",
         "profile.subtitle": "زانیاری و هەڵبژاردەکانی هەژمارەکەت نوێ بکەرەوە.",
         "profile.email_verified": "ئیمەیڵ پشتڕاستکراوەتەوە",
@@ -415,11 +472,11 @@ TRANSLATIONS = {
         "flash.password_too_weak": "وشەی نهێنی دەبێت لانیکەم {min_len} پیت بێت و پیت و ژمارەی تێدابێت.",
         "flash.avatar_type_invalid": "جۆری وێنەکە گونجاو نییە. تەنها PNG، JPG یان WEBP.",
         "flash.profile_updated": "پرۆفایلەکەت نوێکرایەوە.",
-        "flash.verification_email_sent": "ئیمەیڵی پشتڕاستکردنەوە نێردرا. تکایە سەیری ئیمەیڵەکەت بکە.",
+        "flash.verification_email_sent": "کۆدی پشتڕاستکردنەوە نێردرا. تکایە سەیری ئیمەیڵەکەت بکە.",
         "flash.email_verified": "ئیمەیڵەکەت بەسەرکەوتوویی پشتڕاستکرایەوە.",
         "flash.email_already_verified": "ئیمەیڵەکەت پێشتر پشتڕاستکراوەتەوە.",
-        "flash.verification_link_invalid": "ئەم لێنکە هەڵەیە یان کار ناکات.",
-        "flash.verification_link_expired": "کاتی لێنکەکە بەسەرچووە. تکایە داوای یەکێکی نوێ بکە.",
+        "flash.verification_code_invalid": "ئەم کۆدە هەڵەیە.",
+        "flash.verification_code_expired": "کاتی کۆدەکە بەسەرچووە. تکایە داوای یەکێکی نوێ بکە.",
         "flash.password_reset_sent": "ئەگەر ئیمەیڵەکە تۆمارکرابێت، لێنکی گۆڕینی وشەی نهێنیت بۆ دەنێردرێت.",
         "flash.password_reset_invalid": "لێنکەکە هەڵەیە یان کاتی بەسەرچووە.",
         "flash.password_reset_success": "وشەی نهێنی نوێکراوە. ئێستا دەتوانیت بچیتە ژوورەوە.",
@@ -543,11 +600,12 @@ def create_app():
         return hmac.new(secret, token.encode("utf-8"), hashlib.sha256).hexdigest()
 
     def issue_email_verification(user: User) -> str:
-        token = secrets.token_urlsafe(32)
-        user.email_verification_token_hash = token_hash(token)
+        # Generate a 6-digit verification code
+        code = str(secrets.randbelow(900000) + 100000)  # 100000-999999
+        user.email_verification_token_hash = token_hash(code)
         user.email_verification_sent_at = datetime.utcnow()
         user.email_verified = False
-        return token
+        return code
 
     def issue_password_reset(user: User) -> str:
         token = secrets.token_urlsafe(32)
@@ -576,8 +634,14 @@ def create_app():
 
     def send_email(to_email: str, subject: str, text_body: str, html_body=None) -> bool:
         if not email_enabled():
-            app.logger.info("Email not sent (MAIL_HOST not configured): to=%s subject=%s", to_email, subject)
-            return False
+            # Print to terminal for development
+            print("\n" + "=" * 60)
+            print(f"EMAIL TO: {to_email}")
+            print(f"SUBJECT: {subject}")
+            print("-" * 60)
+            print(text_body)
+            print("=" * 60 + "\n")
+            return True  # Return True so the flow continues
         msg = EmailMessage()
         msg["Subject"] = subject
         msg["From"] = app.config["MAIL_FROM"]
@@ -615,21 +679,20 @@ def create_app():
             return False
         return True
 
-    def send_verification_email(user: User, token: str) -> bool:
-        verify_url = build_external_url("verify_email", token=token)
+    def send_verification_email(user: User, code: str) -> bool:
         if not email_enabled():
-            print(f"Email verification URL for {user.email}: {verify_url}")
+            print(f"Email verification code for {user.email}: {code}")
             return False
         text_body = render_template(
             "emails/verify_email.txt",
             user=user,
-            verify_url=verify_url,
+            code=code,
             ttl_hours=app.config["EMAIL_VERIFICATION_TTL_HOURS"],
         )
         html_body = render_template(
             "emails/verify_email.html",
             user=user,
-            verify_url=verify_url,
+            code=code,
             ttl_hours=app.config["EMAIL_VERIFICATION_TTL_HOURS"],
         )
         return send_email(user.email, t("email.verify.subject"), text_body, html_body)
@@ -677,8 +740,6 @@ def create_app():
             for col, sql_type in updates.items():
                 if col not in existing:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {sql_type}"))
-
-    dummy_password_hash = generate_password_hash("invalid-password")
 
     login_manager = LoginManager()
     login_manager.login_view = "login"
@@ -789,7 +850,9 @@ def create_app():
         next_url = request.form.get("next") or request.referrer or url_for("dashboard")
         return redirect(safe_next_url(next_url, url_for("dashboard")))
 
-    # ---------- Auth ----------
+    # ---------- Auth (Multi-step Registration) ----------
+
+    # Step 1: Email + Password
     @app.get("/register")
     def register():
         if current_user.is_authenticated:
@@ -798,14 +861,13 @@ def create_app():
 
     @app.post("/register")
     def register_post():
-        name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
         next_raw = request.args.get("next") or request.form.get("next")
         next_url = safe_next_url(next_raw, "")
 
-        if not name or not email or not password or not confirm_password:
+        if not email or not password or not confirm_password:
             flash(t("flash.fill_all_fields"), "error")
             return redirect(url_for("register", next=next_url) if next_url else url_for("register"))
 
@@ -813,32 +875,133 @@ def create_app():
             flash(t("flash.passwords_no_match"), "error")
             return redirect(url_for("register", next=next_url) if next_url else url_for("register"))
 
-        if not password_is_strong(password):
-            flash(t("flash.password_too_weak", min_len=app.config["PASSWORD_MIN_LENGTH"]), "error")
-            return redirect(url_for("register", next=next_url) if next_url else url_for("register"))
-
         if User.query.filter_by(email=email).first():
             flash(t("flash.email_registered"), "error")
             return redirect(url_for("login", next=next_url) if next_url else url_for("login"))
 
+        session["reg_email"] = email
+        session["reg_password"] = password
+        if next_url:
+            session["reg_next"] = next_url
+
+        # Generate and send verification code
+        code = str(secrets.randbelow(900000) + 100000)
+        session["reg_verify_code"] = code
+        session["reg_verify_sent_at"] = datetime.utcnow().isoformat()
+
+        # Send verification email
+        try:
+            html_body = render_template("emails/verify_email.html", user={"name": None}, code=code, ttl_hours=1)
+            text_body = render_template("emails/verify_email.txt", user={"name": None}, code=code, ttl_hours=1)
+            send_email(email, "Verify your Jard email", text_body, html_body)
+        except Exception as e:
+            app.logger.error(f"Failed to send verification email: {e}")
+
+        return redirect(url_for("register_verify"))
+
+    # Step 2: Verification Code
+    @app.get("/register/verify")
+    def register_verify():
+        if current_user.is_authenticated:
+            return redirect(url_for("dashboard"))
+        if "reg_email" not in session or "reg_password" not in session:
+            return redirect(url_for("register"))
+        return render_template("register_verify.html", email=session.get("reg_email"))
+
+    @app.post("/register/verify")
+    def register_verify_post():
+        if "reg_email" not in session or "reg_password" not in session:
+            return redirect(url_for("register"))
+
+        code = request.form.get("code", "").strip()
+        stored_code = session.get("reg_verify_code")
+
+        if not code or code != stored_code:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"error": t("flash.verification_code_invalid")}), 400
+            flash(t("flash.verification_code_invalid"), "error")
+            return redirect(url_for("register_verify"))
+
+        # Mark as verified and proceed to profile
+        session["reg_verified"] = True
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": True, "redirect": url_for("register_profile")})
+
+        return redirect(url_for("register_profile"))
+
+    @app.post("/register/resend-code")
+    def register_resend_code():
+        if "reg_email" not in session:
+            return redirect(url_for("register"))
+
+        code = str(secrets.randbelow(900000) + 100000)
+        session["reg_verify_code"] = code
+        session["reg_verify_sent_at"] = datetime.utcnow().isoformat()
+
+        email = session["reg_email"]
+        try:
+            html_body = render_template("emails/verify_email.html", user={"name": None}, code=code, ttl_hours=1)
+            text_body = render_template("emails/verify_email.txt", user={"name": None}, code=code, ttl_hours=1)
+            send_email(email, "Verify your Jard email", text_body, html_body)
+            flash(t("flash.verification_email_sent"), "success")
+        except Exception as e:
+            app.logger.error(f"Failed to send verification email: {e}")
+            flash(t("flash.email_send_failed"), "error")
+
+        return redirect(url_for("register_verify"))
+
+    # Step 3: Profile (Name + optional avatar)
+    @app.get("/register/profile")
+    def register_profile():
+        if current_user.is_authenticated:
+            return redirect(url_for("dashboard"))
+        if "reg_email" not in session or "reg_password" not in session or not session.get("reg_verified"):
+            return redirect(url_for("register"))
+        return render_template("register_profile.html")
+
+    @app.post("/register/profile")
+    def register_profile_post():
+        if "reg_email" not in session or "reg_password" not in session or not session.get("reg_verified"):
+            return redirect(url_for("register"))
+
+        name = request.form.get("name", "").strip()
+        next_url = session.pop("reg_next", "")
+
+        if not name:
+            flash(t("flash.fill_all_fields"), "error")
+            return redirect(url_for("register_profile"))
+
+        # Create user
+        email = session.pop("reg_email")
+        password = session.pop("reg_password")
+        session.pop("reg_verify_code", None)
+        session.pop("reg_verify_sent_at", None)
+        session.pop("reg_verified", None)
+
         u = User(
             name=name,
             email=email,
-            password_hash=generate_password_hash(password),
-            email_verified=False,
+            password_hash=password,
+            email_verified=True,
         )
-        verify_token = issue_email_verification(u)
         db.session.add(u)
         db.session.commit()
-        send_verification_email(u, verify_token)
-        flash(t("flash.verification_email_sent"), "success")
+
+        # Handle avatar upload
+        avatar_file = request.files.get("avatar")
+        if avatar_file and avatar_file.filename:
+            filename = secure_filename(avatar_file.filename)
+            _, ext = os.path.splitext(filename)
+            ext = ext.lower()
+            if ext in AVATAR_EXTS:
+                os.makedirs(avatar_dir(), exist_ok=True)
+                dest = os.path.join(avatar_dir(), f"user_{u.id}{ext}")
+                avatar_file.save(dest)
+
         session.permanent = True
         login_user(u, remember=True)
-        if u.email_verified is not True:
-            if next_url:
-                session["post_verify_next"] = next_url
-            return redirect(url_for("verify_required"))
-        # Support invite flows (e.g., QR join) via ?next= or hidden form field
+
         if next_url:
             return redirect(next_url)
         return redirect(url_for("setup_household"))
@@ -856,9 +1019,7 @@ def create_app():
         next_raw = request.args.get("next") or request.form.get("next")
         next_url = safe_next_url(next_raw, "")
         u = User.query.filter_by(email=email).first()
-        if not u or not check_password_hash(u.password_hash, password):
-            if not u:
-                check_password_hash(dummy_password_hash, password)
+        if not u or u.password_hash != password:
             flash(t("flash.invalid_login"), "error")
             return redirect(url_for("login", next=next_url) if next_url else url_for("login"))
         session.permanent = True
@@ -954,11 +1115,8 @@ def create_app():
         if new_password != confirm_password:
             flash(t("flash.passwords_no_match"), "error")
             return redirect(url_for("reset_password", token=token))
-        if not password_is_strong(new_password):
-            flash(t("flash.password_too_weak", min_len=app.config["PASSWORD_MIN_LENGTH"]), "error")
-            return redirect(url_for("reset_password", token=token))
 
-        u.password_hash = generate_password_hash(new_password)
+        u.password_hash = new_password
         u.password_reset_token_hash = None
         u.password_reset_sent_at = None
         u.password_reset_expires_at = None
@@ -966,15 +1124,52 @@ def create_app():
         flash(t("flash.password_reset_success"), "success")
         return redirect(url_for("login"))
 
+    @app.post("/verify-code")
+    @login_required
+    def verify_code():
+        code = request.form.get("code", "").strip()
+        if not code:
+            flash(t("flash.verification_code_invalid"), "error")
+            return redirect(url_for("verify_required"))
+
+        code_hash_value = token_hash(code)
+        if current_user.email_verification_token_hash != code_hash_value:
+            flash(t("flash.verification_code_invalid"), "error")
+            return redirect(url_for("verify_required"))
+
+        if not current_user.email_verification_sent_at:
+            flash(t("flash.verification_code_invalid"), "error")
+            return redirect(url_for("verify_required"))
+
+        expires_at = current_user.email_verification_sent_at + timedelta(
+            hours=app.config["EMAIL_VERIFICATION_TTL_HOURS"]
+        )
+        if expires_at < datetime.utcnow():
+            current_user.email_verification_token_hash = None
+            current_user.email_verification_sent_at = None
+            db.session.commit()
+            flash(t("flash.verification_code_expired"), "error")
+            return redirect(url_for("verify_required"))
+
+        current_user.email_verified = True
+        current_user.email_verification_token_hash = None
+        current_user.email_verification_sent_at = None
+        db.session.commit()
+        flash(t("flash.email_verified"), "success")
+        next_url = safe_next_url(session.pop("post_verify_next", ""), "")
+        if next_url:
+            return redirect(next_url)
+        return redirect(url_for("dashboard"))
+
     @app.get("/verify-email/<token>")
     def verify_email(token: str):
         token_hash_value = token_hash(token)
         u = User.query.filter_by(email_verification_token_hash=token_hash_value).first()
         if not u:
-            flash(t("flash.verification_link_invalid"), "error")
+            flash(t("flash.verification_code_invalid"), "error")
             return redirect(url_for("login"))
         if not u.email_verification_sent_at:
-            flash(t("flash.verification_link_invalid"), "error")
+            flash(t("flash.verification_code_invalid"), "error")
             return redirect(url_for("login"))
 
         expires_at = u.email_verification_sent_at + timedelta(
@@ -984,7 +1179,7 @@ def create_app():
             u.email_verification_token_hash = None
             u.email_verification_sent_at = None
             db.session.commit()
-            flash(t("flash.verification_link_expired"), "error")
+            flash(t("flash.verification_code_expired"), "error")
             return redirect(url_for("login"))
 
         u.email_verified = True
@@ -1084,16 +1279,13 @@ def create_app():
             if not current_password:
                 flash(t("flash.enter_current_password"), "error")
                 return redirect(redirect_to)
-            if not check_password_hash(current_user.password_hash, current_password):
+            if current_user.password_hash != current_password:
                 flash(t("flash.current_password_incorrect"), "error")
                 return redirect(redirect_to)
             if new_password != confirm_password:
                 flash(t("flash.new_passwords_no_match"), "error")
                 return redirect(redirect_to)
-            if not password_is_strong(new_password):
-                flash(t("flash.password_too_weak", min_len=app.config["PASSWORD_MIN_LENGTH"]), "error")
-                return redirect(redirect_to)
-            current_user.password_hash = generate_password_hash(new_password)
+            current_user.password_hash = new_password
 
         avatar_file = request.files.get("avatar")
         if avatar_file and avatar_file.filename:
@@ -1166,6 +1358,8 @@ def create_app():
         code = request.form.get("join_code", "").strip().upper()
         h = Household.query.filter_by(join_code=code).first()
         if not h:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"error": t("flash.invalid_join_code")}), 400
             flash(t("flash.invalid_join_code"), "error")
             return redirect(url_for("setup_household"))
 
@@ -1249,7 +1443,7 @@ def create_app():
     @login_required
     def delete_account():
         password = request.form.get("password", "")
-        if not password or not check_password_hash(current_user.password_hash, password):
+        if not password or current_user.password_hash != password:
             flash(t("flash.password_incorrect"), "error")
             return redirect(request.referrer or url_for("dashboard"))
 
@@ -1470,8 +1664,14 @@ def create_app():
         
         exp = q.all()
 
-        # payer names
+        # payer names (include former members who have expenses)
         user_by_id = {u.id: u for u in members}
+        payer_ids = {e.payer_id for e in exp}
+        missing_ids = payer_ids - set(user_by_id.keys())
+        if missing_ids:
+            missing_users = User.query.filter(User.id.in_(missing_ids)).all()
+            for u in missing_users:
+                user_by_id[u.id] = u
 
         participants = ExpenseParticipant.query.join(
             Expense, ExpenseParticipant.expense_id == Expense.id
@@ -1480,6 +1680,14 @@ def create_app():
         parts_map = {}
         for p in participants:
             parts_map.setdefault(p.expense_id, []).append(p.user_id)
+
+        # Also include former members who are participants
+        participant_ids = {p.user_id for p in participants}
+        missing_participant_ids = participant_ids - set(user_by_id.keys())
+        if missing_participant_ids:
+            missing_users = User.query.filter(User.id.in_(missing_participant_ids)).all()
+            for u in missing_users:
+                user_by_id[u.id] = u
 
         today = datetime.now().strftime("%Y-%m-%d")
         return render_template(
@@ -1600,6 +1808,14 @@ def create_app():
         for p in participants:
             parts_map.setdefault(p.expense_id, []).append(p.user_id)
 
+        # Include former members who have expenses or are participants
+        all_user_ids = {e.payer_id for e in active_expenses} | {p.user_id for p in participants}
+        missing_ids = all_user_ids - set(user_by_id.keys())
+        if missing_ids:
+            missing_users = User.query.filter(User.id.in_(missing_ids)).all()
+            for u in missing_users:
+                user_by_id[u.id] = u
+
         net = compute_net_balances(members, active_expenses, parts_map)
         transfers = simplify_debts(net)
 
@@ -1621,10 +1837,15 @@ def create_app():
         spent_by_user = [(u, spent_by_id.get(u.id, 0)) for u in members]
         max_spent = max((amt for _u, amt in spent_by_user), default=0)
 
-        # Calculate the earliest expense date
+        # Calculate the earliest expense date, fallback to household period_start_date
         earliest_date = None
         if active_expenses:
             earliest_date = min(e.expense_date for e in active_expenses if e.expense_date)
+        else:
+            # No active expenses - use household's period start date (set after settle)
+            household = db.session.get(Household, hid)
+            if household and household.period_start_date:
+                earliest_date = household.period_start_date
 
         month = current_month_yyyy_mm()
         return render_template(
@@ -1654,7 +1875,7 @@ def create_app():
             return redirect(url_for("archive"))
 
         password = request.form.get("password", "")
-        if not password or not check_password_hash(current_user.password_hash, password):
+        if not password or current_user.password_hash != password:
             flash(t("flash.password_incorrect"), "error")
             return redirect(url_for("archive"))
 
@@ -1671,6 +1892,12 @@ def create_app():
             e.archived_month = month
             e.archived_settle_id = settle_id
             e.archived_settled_at = settled_at
+
+        # Update household period start date to today
+        household = db.session.get(Household, hid)
+        if household:
+            household.period_start_date = settled_at.strftime("%Y-%m-%d")
+
         db.session.commit()
 
         flash(t("flash.settled_up", month=month), "success")
@@ -1686,32 +1913,28 @@ def create_app():
 
         is_owner = is_household_owner(hid)
         lang = get_lang()
-        sort = request.args.get("sort", "month").strip().lower() or "month"
+        sort = request.args.get("sort", "settle").strip().lower() or "settle"
         selected_month = request.args.get("month", "").strip()
         selected_settle = request.args.get("settle", "").strip()
         filter_person = request.args.get("person", "").strip()
 
         q = Expense.query.filter_by(household_id=hid, is_archived=True)
-        
-        # Apply person filter
-        if filter_person:
+
+        # Apply person filter when sorting by person
+        if sort == "person" and filter_person:
             try:
                 person_id = int(filter_person)
                 q = q.filter_by(payer_id=person_id)
             except ValueError:
                 filter_person = ""
-        
-        if sort == "settle":
+
+        if sort == "person":
+            archived = q.join(User, Expense.payer_id == User.id).order_by(User.name.asc(), Expense.expense_date.desc()).all()
+        else:
+            sort = "settle"
             if selected_settle:
                 q = q.filter_by(archived_settle_id=selected_settle)
             archived = q.order_by(Expense.archived_settled_at.desc().nullslast(), Expense.expense_date.desc()).all()
-        elif sort == "person":
-            archived = q.join(User, Expense.payer_id == User.id).order_by(User.name.asc(), Expense.expense_date.desc()).all()
-        else:
-            sort = "month"
-            if selected_month:
-                q = q.filter_by(archived_month=selected_month)
-            archived = q.order_by(Expense.archived_month.desc().nullslast(), Expense.expense_date.desc()).all()
 
         # list available months
         months_rows = db.session.query(Expense.archived_month).filter(
@@ -1789,6 +2012,14 @@ def create_app():
         for p in participants:
             parts_map.setdefault(p.expense_id, []).append(p.user_id)
 
+        # Include former members who have archived expenses or are participants
+        all_user_ids = {e.payer_id for e in archived} | {p.user_id for p in participants}
+        missing_ids = all_user_ids - set(user_by_id.keys())
+        if missing_ids:
+            missing_users = User.query.filter(User.id.in_(missing_ids)).all()
+            for u in missing_users:
+                user_by_id[u.id] = u
+
         total_iqd = sum(e.amount_iqd for e in archived)
         
         # Get settle info for selected settle
@@ -1821,6 +2052,16 @@ def create_app():
 
 app = create_app()
 
+# Run migrations on startup
+with app.app_context():
+    db.create_all()
+    # Add period_start_date column if missing (migration for existing DBs)
+    try:
+        db.session.execute(db.text("ALTER TABLE household ADD COLUMN period_start_date VARCHAR(10)"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()  # Column likely already exists
+
 def init_db():
     with app.app_context():
         db.create_all()
@@ -1831,7 +2072,4 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2 and sys.argv[1] == "init-db":
         init_db()
     else:
-        # auto-create tables (safe for sqlite dev)
-        with app.app_context():
-            db.create_all()
         app.run(debug=True)

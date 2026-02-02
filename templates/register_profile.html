@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex flex-col items-center gap-8">
+  <div class="card rounded-3xl p-8 w-full max-w-md text-center">
+    <div class="mb-6">
+      <svg class="w-16 h-16 mx-auto text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      </svg>
+    </div>
+    <h1 class="text-3xl font-bold">{{ t('register.profile_step_title') }}</h1>
+    <p class="mt-2 text-slate-400">{{ t('register.profile_step_subtitle') }}</p>
+
+    <form id="profileForm" class="mt-8 space-y-6" method="post" action="{{ url_for('register_profile_post') }}" enctype="multipart/form-data">
+      <!-- Avatar Upload -->
+      <div class="flex flex-col items-center gap-4">
+        <div class="relative group">
+          <div id="avatarPreview" class="w-28 h-28 rounded-full bg-white/10 ring-4 ring-white/10 overflow-hidden flex items-center justify-center">
+            <svg class="w-12 h-12 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </div>
+          <label for="avatarInput" class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer">
+            <svg class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+              <circle cx="12" cy="13" r="3"/>
+            </svg>
+          </label>
+          <input type="file" id="avatarInput" name="avatar" accept="image/*" class="sr-only" />
+        </div>
+        <button type="button" id="uploadBtn" class="text-sm text-violet-300 hover:text-violet-200 transition font-medium">
+          {{ t('register.upload_photo') }}
+        </button>
+      </div>
+
+      <!-- Name Input -->
+      <div class="text-start">
+        <label class="text-sm text-slate-200">{{ t('register.name_label') }}</label>
+        <input id="nameInput" name="name" type="text" autocomplete="name"
+               class="mt-1 w-full px-4 py-3 rounded-2xl input focus:outline-none focus:ring-2 focus:ring-violet-400"
+               placeholder="{{ t('register.name_placeholder') }}" autofocus />
+        <div id="nameError" class="mt-2 text-sm text-rose-400 hidden"></div>
+      </div>
+
+      <button type="submit" class="w-full py-3 rounded-2xl bg-violet-500 hover:bg-violet-400 transition font-semibold">
+        {{ t('register.complete_button') }}
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const form = document.getElementById('profileForm');
+    const nameInput = document.getElementById('nameInput');
+    const errorEl = document.getElementById('nameError');
+    const avatarInput = document.getElementById('avatarInput');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    if (!form) return;
+
+    // Avatar preview
+    uploadBtn.addEventListener('click', () => avatarInput.click());
+
+    avatarInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          avatarPreview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover" />`;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Form validation
+    nameInput.addEventListener('input', () => {
+      errorEl.classList.add('hidden');
+      nameInput.classList.remove('ring-rose-500');
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+
+      if (!name) {
+        errorEl.textContent = '{{ t("register.name_required") }}';
+        errorEl.classList.remove('hidden');
+        nameInput.classList.add('ring-rose-500');
+        nameInput.focus();
+        return;
+      }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = '...';
+
+      // Use regular form submission for file upload
+      form.submit();
+    });
+  })();
+</script>
+{% endblock %}

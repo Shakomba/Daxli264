@@ -1,8 +1,10 @@
 Hello {{ user.name or "there" }},
 
-Please verify your Jard email by clicking the link below. This link expires in {{ ttl_hours }} hours.
+Your Jard verification code is:
 
-{{ verify_url }}
+{{ code }}
+
+Enter this code in the app to verify your email. This code expires in {{ ttl_hours }} hours.
 
 If you did not create a Jard account, you can ignore this email.
 
