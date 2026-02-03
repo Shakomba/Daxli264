@@ -707,7 +707,7 @@ a[href^="mailto"],
 
 {% set ep = request.endpoint or "" %}
 {% set is_auth_page = ep in ["login", "register", "register_verify", "register_profile", "forgot_password", "reset_password", "verify_required", "setup_household"] %}
-{% set hide_navbar = ep in ["login", "register", "register_verify", "register_profile", "setup_household", "forgot_password"] %}
+{% set hide_navbar = ep in ["login", "register", "register_verify", "register_profile", "forgot_password"] %}
 
 <body class="min-h-screen text-slate-100{% if hide_navbar %} no-mobile-padding{% endif %}">
   <div id="appRoot" class="{% if not hide_navbar %}max-w-7xl mx-auto px-4 {% if is_auth_page %}pt-12 pb-6{% else %}py-3{% endif %}{% endif %}" style="overflow: visible;">
@@ -797,12 +797,11 @@ a[href^="mailto"],
           </div>
         {% endif %}
 
-        {% if current_user.is_authenticated and not is_auth_page %}
+        {% if current_user.is_authenticated and not is_auth_page and has_household %}
           {% set link_base = "px-4 py-2.5 rounded-xl transition inline-flex items-center gap-2" %}
           {% set active = "bg-violet-500/15 ring-1 ring-inset ring-violet-400/20" %}
           {% set inactive = "hover:bg-white/10" %}
           <nav id="topNav" class="w-full flex flex-nowrap overflow-x-auto no-scrollbar items-center gap-2 text-base whitespace-nowrap justify-start sm:justify-center px-2 sm:px-1 sm:col-start-2 sm:row-start-1">
-            {% if has_household %}
               <a class="{{ link_base }} {{ active if ep=='dashboard' else inactive }}" href="{{ url_for('dashboard') }}">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -833,7 +832,6 @@ a[href^="mailto"],
                 </svg>
                 {{ t('nav.archive') }}
               </a>
-            {% endif %}
           </nav>
         {% endif %}
       </div>
