@@ -122,6 +122,9 @@
       box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.2);
       transform: none;
     }
+    .or-divider-bg {
+      background: rgba(18, 18, 27, 0.75);
+    }
     .header-shell {
       backdrop-filter: blur(12px);
       background: rgba(15, 16, 23, 0.75);
@@ -498,6 +501,9 @@ a[href^="mailto"],
       border: 1px solid rgba(148, 163, 184, 0.2);
       box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.03);
     }
+    :root[data-theme="light"] .or-divider-bg {
+      background: #ffffff;
+    }
     :root[data-theme="light"] .header-shell {
       background: rgba(255, 255, 255, 0.92);
       border: 1px solid rgba(148, 163, 184, 0.2);
@@ -706,7 +712,7 @@ a[href^="mailto"],
 </head>
 
 {% set ep = request.endpoint or "" %}
-{% set is_auth_page = ep in ["login", "register", "register_verify", "register_profile", "forgot_password", "reset_password", "verify_required", "setup_household"] %}
+{% set is_auth_page = ep in ["login", "register", "register_verify", "register_profile", "forgot_password", "reset_password", "verify_required"] %}
 {% set hide_navbar = ep in ["login", "register", "register_verify", "register_profile", "forgot_password"] %}
 
 <body class="min-h-screen text-slate-100{% if hide_navbar %} no-mobile-padding{% endif %}">
@@ -730,7 +736,7 @@ a[href^="mailto"],
                 <img src="{{ url_for('static', filename='LogoLight.png') }}" alt="{{ t('common.logo') }}" class="h-full w-full object-contain light-logo hidden transform scale-150 origin-center">
               </div>
             </a>
-            {% if current_user.is_authenticated and not is_auth_page %}
+            {% if current_user.is_authenticated %}
               <div class="flex items-center gap-1.5 sm:col-start-3 sm:row-start-1 sm:justify-self-end">
                 <!-- Language Toggle -->
                 <form id="langForm" method="post" action="{{ url_for('set_language') }}" class="inline">
