@@ -1591,117 +1591,39 @@ a[href^="mailto"],
       }, 5000);
     };
 
-    // Client-side navigation for instant page switching
+    // Prefetch nav pages on hover for faster navigation
     (function() {
-      const navPages = ['dashboard', 'expenses', 'household', 'archive'];
-      const cache = {};
-      let isNavigating = false;
-
-      function updateActiveNav(page) {
-        // Update desktop nav
-        document.querySelectorAll('header nav a').forEach(link => {
-          const href = link.getAttribute('href');
-          if (href && href.includes('/' + page)) {
-            link.classList.remove('text-slate-400', 'hover:text-violet-300');
-            link.classList.add('text-violet-300');
-          } else if (navPages.some(p => href && href.includes('/' + p))) {
-            link.classList.remove('text-violet-300');
-            link.classList.add('text-slate-400', 'hover:text-violet-300');
-          }
-        });
-
-        // Update mobile nav
-        document.querySelectorAll('.mobile-nav-item').forEach(link => {
-          const href = link.getAttribute('href');
-          if (href && href.includes('/' + page)) {
-            link.classList.add('active');
-          } else {
-            link.classList.remove('active');
-          }
-        });
-      }
-
-      function navigateTo(url, page) {
-        if (isNavigating) return;
-        isNavigating = true;
-
-        const mainContent = document.querySelector('main#appMain > div');
-        if (!mainContent) {
-          isNavigating = false;
-          return;
-        }
-
-        // Check cache first
-        if (cache[page]) {
-          mainContent.innerHTML = cache[page];
-          updateActiveNav(page);
-          window.history.pushState({page}, '', url);
-          window.scrollTo(0, 0);
-          isNavigating = false;
-          return;
-        }
-
-        // Fetch new content
-        fetch(url, {
-          headers: {'X-Requested-With': 'XMLHttpRequest'}
-        })
-        .then(response => response.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const newContent = doc.querySelector('main#appMain > div');
-          
-          if (newContent) {
-            const contentHTML = newContent.innerHTML;
-            cache[page] = contentHTML;
-            mainContent.innerHTML = contentHTML;
-            updateActiveNav(page);
-            window.history.pushState({page}, '', url);
-            window.scrollTo(0, 0);
-          }
-        })
-        .catch(err => {
-          console.error('Navigation error:', err);
-          window.location.href = url;
-        })
-        .finally(() => {
-          isNavigating = false;
-        });
-      }
-
-      // Intercept navigation clicks
-      document.addEventListener('click', function(e) {
+      const prefetched = new Set();
+      
+      document.addEventListener('mouseover', function(e) {
         const link = e.target.closest('a');
         if (!link) return;
-
+        
         const href = link.getAttribute('href');
-        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-
-        const page = navPages.find(p => href.includes('/' + p));
-        if (!page) return;
-
-        e.preventDefault();
-        navigateTo(href, page);
-      });
-
-      // Handle browser back/forward
-      window.addEventListener('popstate', function(e) {
-        if (e.state && e.state.page) {
-          const page = e.state.page;
-          const url = '/' + page;
-          
-          if (cache[page]) {
-            const mainContent = document.querySelector('main#appMain > div');
-            if (mainContent) {
-              mainContent.innerHTML = cache[page];
-              updateActiveNav(page);
-              window.scrollTo(0, 0);
-            }
-          } else {
-            location.reload();
-          }
+        if (!href || prefetched.has(href)) return;
+        
+        // Only prefetch main nav pages
+        if (href.match(/^\/(dashboard|expenses|household|archive)$/)) {
+          prefetched.add(href);
+          const prefetchLink = document.createElement('link');
+          prefetchLink.rel = 'prefetch';
+          prefetchLink.href = href;
+          document.head.appendChild(prefetchLink);
         }
       });
+      
+      // Prefetch all main pages after load
+      setTimeout(function() {
+        ['/dashboard', '/expenses', '/household', '/archive'].forEach(function(href) {
+          if (!prefetched.has(href)) {
+            prefetched.add(href);
+            const prefetchLink = document.createElement('link');
+            prefetchLink.rel = 'prefetch';
+            prefetchLink.href = href;
+            document.head.appendChild(prefetchLink);
+          }
+        });
+      }, 1000);
     })();
   </script>
 </body>
