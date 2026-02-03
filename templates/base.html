@@ -710,7 +710,7 @@ a[href^="mailto"],
 {% set hide_navbar = ep in ["login", "register", "register_verify", "register_profile", "setup_household", "forgot_password"] %}
 
 <body class="min-h-screen text-slate-100{% if hide_navbar %} no-mobile-padding{% endif %}">
-  <div id="appRoot" class="{% if not hide_navbar %}max-w-7xl mx-auto px-4 {% if is_auth_page %}pt-20 pb-6{% else %}py-6{% endif %}{% endif %}" style="overflow: visible;">
+  <div id="appRoot" class="{% if not hide_navbar %}max-w-7xl mx-auto px-4 {% if is_auth_page %}pt-12 pb-6{% else %}py-3{% endif %}{% endif %}" style="overflow: visible;">
     {% set next_lang = "en" if lang == "ku" else "ku" %}
     {% if not hide_navbar %}
     <header id="appHeader" class="{% if is_auth_page %}fixed inset-x-0 top-0 bg-[var(--bg)]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4{% else %}sticky top-0 header-shell rounded-3xl px-4 py-3 sm:px-6{% endif %} z-50" style="overflow: visible;">

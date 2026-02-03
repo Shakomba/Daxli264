@@ -28,10 +28,10 @@
   /* Custom Archive Filter Dropdowns */
   .archive-select {
     position: relative;
-    z-index: 50;
+    z-index: 10;
   }
   .archive-select.open {
-    z-index: 100;
+    z-index: 20;
   }
   .archive-select-btn {
     cursor: pointer;
@@ -55,7 +55,7 @@
   top: 100%;
   left: 0;
   right: 0;
-  z-index: 10001;
+  z-index: 1;
     margin-top: 0.5rem;
     background: rgba(18, 18, 27, 0.98);
     border: 1px solid rgba(255,255,255,0.15);
@@ -111,7 +111,7 @@
   }
 </style>
 
-<div class="flex flex-col items-center gap-6 pb-28" style="overflow: visible;">
+<div class="flex flex-col items-center gap-6 pb-64" style="overflow: visible;">
   <!-- Header -->
   <div class="flex flex-col items-center text-center gap-2 mb-2">
     <h1 class="text-3xl sm:text-4xl font-bold">
@@ -136,7 +136,7 @@
   </div>
 
   <!-- Filter Card -->
-  <div class="w-full max-w-2xl card rounded-3xl p-5 sm:p-6" style="overflow: visible; position: relative; z-index: 300;">
+  <div class="w-full max-w-2xl card rounded-3xl p-5 sm:p-6" style="overflow: visible; position: relative;">
     <div class="flex items-center gap-3 mb-4">
       <svg class="w-5 h-5 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
