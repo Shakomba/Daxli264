@@ -13,7 +13,6 @@ from urllib.parse import urlparse, urljoin
 import qrcode
 from flask import Flask, render_template, redirect, url_for, request, flash, abort, send_file, session, has_request_context, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, inspect, text
 
@@ -593,10 +592,6 @@ TRANSLATIONS = {
 
 def create_app():
     app = Flask(__name__)
-    
-    # Handle reverse proxy headers (X-Forwarded-For, X-Forwarded-Proto, etc.)
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-    
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///roommates.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -1493,40 +1488,48 @@ def create_app():
     @app.route("/household/leave", methods=["GET", "POST"])
     @login_required
     def leave_household():
-        hid = require_household_id()
-        if not hid:
+        try:
+            hid = require_household_id()
+            if not hid:
+                return redirect(url_for("setup_household"))
+
+            h = db.session.get(Household, hid)
+            if not h:
+                abort(404)
+
+            # Best-effort backfill owner_id
+            if h.owner_id is None:
+                first = Membership.query.filter_by(household_id=hid).order_by(Membership.created_at.asc()).first()
+                if first:
+                    h.owner_id = first.user_id
+                    db.session.commit()
+
+            # If admin is leaving, transfer ownership to next oldest member
+            if h.owner_id == current_user.id:
+                next_member = Membership.query.filter(
+                    Membership.household_id == hid,
+                    Membership.user_id != current_user.id
+                ).order_by(Membership.created_at.asc()).first()
+                
+                if next_member:
+                    h.owner_id = next_member.user_id
+                else:
+                    # Last member, delete household
+                    db.session.delete(h)
+
+            # Remove membership for this specific household
+            Membership.query.filter_by(user_id=current_user.id, household_id=hid).delete()
+
+            db.session.commit()
+            flash(t("flash.left_household"), "success")
             return redirect(url_for("setup_household"))
-
-        h = db.session.get(Household, hid)
-        if not h:
-            abort(404)
-
-        # Best-effort backfill owner_id
-        if h.owner_id is None:
-            first = Membership.query.filter_by(household_id=hid).order_by(Membership.created_at.asc()).first()
-            if first:
-                h.owner_id = first.user_id
-                db.session.commit()
-
-        # If admin is leaving, transfer ownership to next oldest member
-        if h.owner_id == current_user.id:
-            next_member = Membership.query.filter(
-                Membership.household_id == hid,
-                Membership.user_id != current_user.id
-            ).order_by(Membership.created_at.asc()).first()
-            
-            if next_member:
-                h.owner_id = next_member.user_id
-            else:
-                # Last member, delete household
-                db.session.delete(h)
-
-        # Remove membership
-        Membership.query.filter_by(user_id=current_user.id).delete()  # defensive: clear any stray memberships
-
-        db.session.commit()
-        flash(t("flash.left_household"), "success")
-        return redirect(url_for("setup_household"))
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error leaving household: {e}")
+            import traceback
+            traceback.print_exc()
+            flash(t("common.something_went_wrong"), "error")
+            return redirect(url_for("household"))
 
     @app.post("/account/delete")
     @login_required
