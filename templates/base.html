@@ -746,10 +746,10 @@ a[href^="mailto"],
 {% set hide_navbar = ep in ["login", "register", "register_verify", "register_profile", "forgot_password", "reset_password"] %}
 
 <body class="min-h-screen text-slate-100{% if hide_navbar %} no-mobile-padding{% endif %}">
-  <div id="appRoot" class="{% if not hide_navbar %}max-w-7xl mx-auto px-4 {% if is_auth_page %}pt-12 pb-6{% else %}py-3{% endif %}{% endif %}" style="overflow: visible;">
+  <div id="appRoot" class="{% if not hide_navbar %}max-w-7xl mx-auto px-4 {% if is_auth_page %}pt-12 pb-6{% else %}pb-3{% endif %}{% endif %}" style="overflow: visible;">
     {% set next_lang = "en" if lang == "ku" else "ku" %}
     {% if not hide_navbar %}
-    <header id="appHeader" class="{% if is_auth_page %}fixed inset-x-0 top-0 bg-[var(--bg)]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4{% else %}sticky top-0 header-shell rounded-3xl px-4 py-3 sm:px-6{% endif %} z-50" style="overflow: visible;">
+    <header id="appHeader" class="{% if is_auth_page %}fixed inset-x-0 top-0 bg-[var(--bg)]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4{% else %}app-header-fixed fixed top-3 left-1/2 -translate-x-1/2 header-shell rounded-3xl px-4 py-3 sm:px-6{% endif %} z-50" style="overflow: visible; {% if not is_auth_page %}width: min(80rem, calc(100vw - 2rem));{% endif %}">
       <div class="{% if is_auth_page %}flex flex-col items-center text-center gap-2{% else %}flex flex-col gap-4 sm:grid sm:grid-cols-[auto,1fr,auto] sm:items-center{% endif %}">
         {% if is_auth_page and not hide_navbar and ep != 'forgot_password' %}
             <div class="flex items-center justify-center gap-3">
@@ -870,6 +870,9 @@ a[href^="mailto"],
         {% endif %}
       </div>
     </header>
+    {% if not is_auth_page %}
+      <div id="appHeaderSpacer" aria-hidden="true" style="height: 0;"></div>
+    {% endif %}
     {% endif %}
 
     <!-- Mobile Bottom Navigation -->
@@ -1200,14 +1203,37 @@ a[href^="mailto"],
     (function () {
       function syncHeaderDock() {
         const header = document.getElementById('appHeader');
-        if (!header || !header.classList.contains('header-shell')) return;
-        const rect = header.getBoundingClientRect();
-        const shouldDock = rect.top <= 0.5;
+        const spacer = document.getElementById('appHeaderSpacer');
+        if (!header) return;
+
+        // Keep the spacer height in sync so fixed headers don't overlap page content.
+        try {
+          const isDesktop = window.matchMedia('(min-width: 641px)').matches;
+          const isFixed = header.classList.contains('app-header-fixed');
+          if (spacer) {
+            if (isDesktop && isFixed) {
+              // Include the top offset (top-3 => ~12px) so content starts below the header.
+              spacer.style.height = (header.offsetHeight + 12) + 'px';
+            } else {
+              spacer.style.height = '0px';
+            }
+          }
+        } catch (_) {
+          // ignore
+        }
+
+        // Dock styling when scrolling down (more reliable than rect.top for fixed headers).
+        if (!header.classList.contains('header-shell')) return;
+        const shouldDock = (window.scrollY || 0) > 2;
         header.classList.toggle('docked', shouldDock);
       }
 
       syncHeaderDock();
       window.addEventListener('scroll', () => {
+        window.requestAnimationFrame(syncHeaderDock);
+      }, { passive: true });
+
+      window.addEventListener('resize', () => {
         window.requestAnimationFrame(syncHeaderDock);
       }, { passive: true });
 
