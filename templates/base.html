@@ -1409,7 +1409,7 @@ a[href^="mailto"],
         if (window.applyPasswordFieldPolicy) window.applyPasswordFieldPolicy();
       }
 
-      const TAB_PATHS = new Set(['/dashboard', '/expenses', '/room', '/archive']);
+      const TAB_PATHS = new Set(['/dashboard', '/expenses', '/room', '/archive', '/profile']);
       const tabCache = new Map();
 
       function isTabUrl(u) {
@@ -1761,7 +1761,7 @@ a[href^="mailto"],
         if (!href || prefetched.has(href)) return;
         
         // Only prefetch main nav pages
-        if (href.match(/^\/(dashboard|expenses|room|archive)$/)) {
+        if (href.match(/^\/(dashboard|expenses|room|archive|profile)$/)) {
           prefetched.add(href);
           const prefetchLink = document.createElement('link');
           prefetchLink.rel = 'prefetch';
@@ -1772,7 +1772,7 @@ a[href^="mailto"],
       
       // Prefetch all main pages after load
       setTimeout(function() {
-        ['/dashboard', '/expenses', '/room', '/archive'].forEach(function(href) {
+        ['/dashboard', '/expenses', '/room', '/archive', '/profile'].forEach(function(href) {
           if (!prefetched.has(href)) {
             prefetched.add(href);
             const prefetchLink = document.createElement('link');

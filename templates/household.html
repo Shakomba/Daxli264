@@ -39,7 +39,7 @@
 
     <div class="grid sm:grid-cols-2 gap-3 text-start">
       {% for m in members %}
-        <div class="soft rounded-2xl p-4 flex items-start justify-between gap-3" dir="ltr">
+        <div class="soft rounded-2xl p-4 flex items-center justify-between gap-3" dir="ltr">
           <div class="min-w-0 flex items-center gap-3">
             <img src="{{ url_for('avatar', user_id=m.id) }}" alt="{{ m.name }}"
                  class="h-12 w-12 rounded-full object-cover ring-2 ring-white/10 bg-white/5">
@@ -64,7 +64,7 @@
           {% if is_owner and m.id != owner_id %}
             <form method="post" action="{{ url_for('remove_member', user_id=m.id) }}"
                   class="remove-member-form m-0" data-member-name="{{ m.name | e }}">
-              <button type="submit" class="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 transition text-xs font-bold text-white shadow-lg shadow-rose-500/20">
+              <button type="submit" class="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 transition text-xs font-bold text-white">
                 {{ t('household.remove_button') }}
               </button>
             </form>

@@ -178,7 +178,7 @@
                   <form method="post" action="{{ url_for('delete_expense', expense_id=e.id) }}" class="m-0">
                     <button type="submit"
                             data-confirm="{{ t('expenses.delete_confirm') | e }}"
-                            class="px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 transition text-sm font-bold text-white shadow-lg shadow-rose-500/30">
+                            class="px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 transition text-sm font-bold text-white">
                       {{ t('expenses.delete_button') }}
                     </button>
                   </form>

@@ -546,15 +546,20 @@
       }
     }
 
-    // Handle filter form with AJAX navigation
+    // Handle filter form with SPA navigation when available.
+    // Note: URLSearchParams(FormData) isn't supported everywhere, so build it manually.
     const filterForm = document.getElementById('archiveFilterForm');
     if (filterForm) {
-      filterForm.addEventListener('submit', async (e) => {
+      filterForm.addEventListener('submit', (e) => {
+        if (typeof window.navigate !== 'function') return; // let the browser do a normal GET submit
+
         e.preventDefault();
         const formData = new FormData(filterForm);
-        const params = new URLSearchParams(formData);
-        const url = filterForm.action + '?' + params.toString();
-        navigate(url, { push: true });
+        const params = new URLSearchParams();
+        for (const [k, v] of formData.entries()) params.append(k, v);
+        const qs = params.toString();
+        const url = filterForm.action + (qs ? ('?' + qs) : '');
+        window.navigate(url, { push: true });
       });
     }
   })();
