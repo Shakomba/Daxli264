@@ -248,6 +248,7 @@
       transition: border-radius .12s ease, box-shadow .12s ease, transform .12s ease;
     }
     .header-shell.docked {
+      top: 0 !important;
       border-top-left-radius: 0 !important;
       border-top-right-radius: 0 !important;
       border-bottom-left-radius: 1.5rem !important;
@@ -743,7 +744,7 @@ a[href^="mailto"],
 
 {% set ep = request.endpoint or "" %}
 {% set is_auth_page = ep in ["login", "register", "register_verify", "register_profile", "forgot_password", "reset_password", "verify_required"] %}
-{% set hide_navbar = ep in ["login", "register", "register_verify", "register_profile", "forgot_password", "reset_password"] %}
+{% set hide_navbar = ep in ["login", "register", "register_verify", "register_profile", "forgot_password", "reset_password", "verify_required"] %}
 
 <body class="min-h-screen text-slate-100{% if hide_navbar %} no-mobile-padding{% endif %}">
   <div id="appRoot" class="{% if not hide_navbar %}max-w-7xl mx-auto px-4 {% if is_auth_page %}pt-12 pb-6{% else %}pb-3{% endif %}{% endif %}" style="overflow: visible;">
@@ -1212,8 +1213,9 @@ a[href^="mailto"],
           const isFixed = header.classList.contains('app-header-fixed');
           if (spacer) {
             if (isDesktop && isFixed) {
-              // Include the top offset (top-3 => ~12px) so content starts below the header.
-              spacer.style.height = (header.offsetHeight + 12) + 'px';
+              const isDocked = header.classList.contains('docked');
+              // When floating (top-3), include that offset; when docked (top-0), don't.
+              spacer.style.height = (header.offsetHeight + (isDocked ? 0 : 12)) + 'px';
             } else {
               spacer.style.height = '0px';
             }
@@ -1724,13 +1726,67 @@ a[href^="mailto"],
           credentials: 'same-origin'
         });
 
-        if (response.redirected || !response.ok) {
-          // If redirected or error, do a full page reload to handle it properly
-          if (options.onRedirect) {
-            options.onRedirect(response.url);
-          } else {
-            window.location.href = response.url || action;
+        const finalUrl = response.url || action;
+
+        // Sometimes `fetch()` ends up on a different URL (after server redirects)
+        // but `response.redirected` may not reliably reflect it in all cases.
+        // If we clearly landed on a different page, navigate there.
+        try {
+          const dest = new URL(finalUrl, window.location.origin);
+          const here = new URL(window.location.href);
+          if (dest.pathname !== here.pathname) {
+            if (options.onRedirect) {
+              options.onRedirect(finalUrl);
+            } else {
+              window.location.href = finalUrl;
+            }
+            return null;
           }
+        } catch (_) {
+          // ignore
+        }
+
+        // If the server responded with a redirect, fetch will typically follow it
+        // and give us the final HTML in the response body. Showing those flash messages
+        // on the *current* page causes a brief flicker before navigation.
+        // Only render flashes from the HTML when we ultimately land back on the same page.
+        if (response.redirected) {
+          let samePath = false;
+          try {
+            const dest = new URL(finalUrl, window.location.origin);
+            const here = new URL(window.location.href);
+            samePath = dest.pathname === here.pathname;
+          } catch (_) {
+            samePath = false;
+          }
+
+          if (samePath) {
+            const html = await response.text().catch(() => '');
+            let doc = null;
+            if (html) {
+              const parser = new DOMParser();
+              doc = parser.parseFromString(html, 'text/html');
+
+              const flashMessages = doc.getElementById('flashMessages');
+              if (flashMessages) {
+                const currentFlash = document.getElementById('flashMessages');
+                if (currentFlash) currentFlash.innerHTML = flashMessages.innerHTML;
+              }
+            }
+            if (options.onSuccess && doc) options.onSuccess(doc);
+            return doc;
+          }
+
+          if (options.onRedirect) {
+            options.onRedirect(finalUrl);
+          } else {
+            window.location.href = finalUrl;
+          }
+          return null;
+        }
+
+        if (!response.ok) {
+          if (options.onError) options.onError(response);
           return null;
         }
 

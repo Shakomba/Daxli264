@@ -1,5 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  .code-input.code-error {
+    border-color: rgba(244, 63, 94, 0.9) !important;
+    box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.55) !important;
+  }
+  .code-input.code-error:focus {
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.65) !important;
+  }
+</style>
 <div class="flex items-center justify-center px-4" style="min-height: calc(100vh - 160px); padding: 80px 1rem;">
   <div class="card rounded-3xl p-6 max-w-xl w-full text-center">
     <div class="mb-6">
@@ -43,10 +52,18 @@
           {{ t('verify.resend_button') }}
         </button>
       </form>
-      <a class="inline-flex items-center justify-center w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 transition text-sm font-medium text-slate-300"
-         href="{{ url_for('logout') }}">
-        {{ t('verify.logout_button') }}
-      </a>
+      {% if session.get('email_change_old_email') %}
+        <form method="post" action="{{ url_for('cancel_email_change') }}">
+          <button type="submit" class="inline-flex items-center justify-center w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 transition text-sm font-medium text-slate-300">
+            {{ t('verify.cancel_button') }}
+          </button>
+        </form>
+      {% else %}
+        <a class="inline-flex items-center justify-center w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 transition text-sm font-medium text-slate-300"
+           href="{{ url_for('logout') }}">
+          {{ t('verify.logout_button') }}
+        </a>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -78,7 +95,7 @@
         errorDiv.classList.add('hidden');
         errorDiv.textContent = '';
       }
-      inputs.forEach(input => input.classList.remove('ring-rose-500', 'border-rose-500'));
+      inputs.forEach(input => input.classList.remove('ring-rose-500', 'border-rose-500', 'code-error'));
     }
 
     function showError(message) {
@@ -86,7 +103,7 @@
         errorDiv.textContent = message;
         errorDiv.classList.remove('hidden');
       }
-      inputs.forEach(input => input.classList.add('ring-rose-500', 'border-rose-500'));
+      inputs.forEach(input => input.classList.add('ring-rose-500', 'border-rose-500', 'code-error'));
     }
 
     async function submitCode() {
@@ -107,29 +124,22 @@
           }
         });
 
-        if (response.redirected) {
-          window.location.href = response.url;
+        const data = await response.json().catch(() => null);
+        if (response.ok && data && data.success && data.redirect) {
+          window.location.href = data.redirect;
           return;
         }
 
-        // If not redirected, there was an error
-        const text = await response.text();
-
-        // Check if response contains error flash message
-        if (text.includes('verification_code_invalid') || text.includes('incorrect') || response.status >= 400) {
-          showError('{{ t("flash.verification_code_invalid") }}');
-          inputs.forEach(input => {
-            input.disabled = false;
-            input.value = '';
-          });
-          inputs[0].focus();
-          verifyingIndicator.classList.add('hidden');
-        } else {
-          // Redirect to the response URL
-          window.location.href = response.url || '{{ url_for("dashboard") }}';
-        }
+        const message = (data && data.error) ? data.error : '{{ t("flash.verification_code_invalid") }}';
+        showError(message);
+        inputs.forEach(input => {
+          input.disabled = false;
+          input.value = '';
+        });
+        inputs[0].focus();
+        verifyingIndicator.classList.add('hidden');
       } catch (err) {
-        showError('Something went wrong. Please try again.');
+        showError('{{ t("common.something_went_wrong") }}');
         inputs.forEach(input => {
           input.disabled = false;
           input.value = '';

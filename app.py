@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import os
+import re
 import secrets
 import smtplib
 import ssl
@@ -127,6 +128,7 @@ TRANSLATIONS = {
         "verify.help": "Enter the code below to verify your email",
         "verify.code_placeholder": "Enter code",
         "verify.resend_button": "Resend code",
+        "verify.cancel_button": "Cancel and go back",
         "verify.logout_button": "Log out",
         "verify.didnt_receive": "Didn't receive the code? Check spam or",
         "dashboard.welcome": "Welcome",
@@ -260,7 +262,10 @@ TRANSLATIONS = {
         "flash.joined_household": "Joined household {name}",
         "flash.name_empty": "Name cannot be empty",
         "flash.email_empty": "Email cannot be empty",
+        "flash.email_invalid": "Please enter a valid email address",
         "flash.email_in_use": "That email is already in use",
+        "flash.email_change_cancelled": "Email change cancelled",
+        "flash.email_change_cancel_failed": "Couldn't cancel email change. Please try again",
         "flash.enter_current_password": "Enter your current password to change it",
         "flash.current_password_incorrect": "Current password is incorrect",
         "flash.new_passwords_no_match": "New passwords do not match",
@@ -412,6 +417,7 @@ TRANSLATIONS = {
         "verify.help": "کۆدەکە لێرە بنووسە",
         "verify.code_placeholder": "کۆدەکە بنووسە",
         "verify.resend_button": "ناردنەوەی کۆد",
+        "verify.cancel_button": "هەڵوەشاندنەوە و گەڕانەوە",
         "verify.logout_button": "چوونەدەرەوە",
         "verify.didnt_receive": "کۆدەکەت پێ نەگەیشتووە؟ سپام بپشکنە یان",
         "dashboard.welcome": "بەخێربێیت",
@@ -545,7 +551,10 @@ TRANSLATIONS = {
         "flash.joined_household": "چوویتە ناو ژووری {name}",
         "flash.name_empty": "ناو پێویستە",
         "flash.email_empty": "ئیمەیڵ پێویستە",
+        "flash.email_invalid": "تکایە ئیمەیڵێکی ڕاست بنووسە",
         "flash.email_in_use": "ئەم ئیمەیڵە پێشتر بەکارهێنراوە",
+        "flash.email_change_cancelled": "گۆڕینی ئیمەیڵ هەڵوەشێندراوە",
+        "flash.email_change_cancel_failed": "نەتوانرا گۆڕینی ئیمەیڵ هەڵبوەشێنرێتەوە، دووبارە هەوڵبدە",
         "flash.enter_current_password": "بۆ گۆڕین، دەبێت وشەی تێپەڕی ئێستات بنووسیت",
         "flash.current_password_incorrect": "وشەی تێپەڕی ئێستا هەڵەیە",
         "flash.new_passwords_no_match": "وشە تێپەڕە نوێیەکان وەک یەک نین",
@@ -663,6 +672,11 @@ def create_app():
 
     def safe_next_url(target: str, fallback: str) -> str:
         return target if target and is_safe_url(target) else fallback
+
+    _EMAIL_BASIC_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+
+    def email_is_valid(email: str) -> bool:
+        return bool(_EMAIL_BASIC_RE.fullmatch(email or ""))
 
     def password_is_strong(password: str) -> bool:
         if not password or len(password) < app.config["PASSWORD_MIN_LENGTH"]:
@@ -895,7 +909,8 @@ def create_app():
         }
 
     def requires_email_verification() -> bool:
-        return current_user.is_authenticated and current_user.email_verified is not True
+        # Don't use `is not True` here: some DB backends may yield 0/1 instead of strict bool.
+        return current_user.is_authenticated and (not current_user.email_verified)
 
     @app.before_request
     def enforce_email_verification():
@@ -903,8 +918,10 @@ def create_app():
             return None
         allowed = {
             "verify_required",
+            "verify_code",
             "verify_email",
             "resend_verification",
+            "cancel_email_change",
             "logout",
             "static",
             "set_language",
@@ -1109,7 +1126,7 @@ def create_app():
             return redirect(url_for("login", next=next_url) if next_url else url_for("login"))
         session.permanent = True
         login_user(u, remember=True)
-        if u.email_verified is not True:
+        if not u.email_verified:
             if next_url:
                 session["post_verify_next"] = next_url
             return redirect(url_for("verify_required"))
@@ -1212,17 +1229,24 @@ def create_app():
     @app.post("/verify-code")
     @login_required
     def verify_code():
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
         code = request.form.get("code", "").strip()
         if not code:
+            if is_ajax:
+                return jsonify({"success": False, "error": t("flash.verification_code_invalid")}), 400
             flash(t("flash.verification_code_invalid"), "error")
             return redirect(url_for("verify_required"))
 
         code_hash_value = token_hash(code)
         if current_user.email_verification_token_hash != code_hash_value:
+            if is_ajax:
+                return jsonify({"success": False, "error": t("flash.verification_code_invalid")}), 400
             flash(t("flash.verification_code_invalid"), "error")
             return redirect(url_for("verify_required"))
 
         if not current_user.email_verification_sent_at:
+            if is_ajax:
+                return jsonify({"success": False, "error": t("flash.verification_code_invalid")}), 400
             flash(t("flash.verification_code_invalid"), "error")
             return redirect(url_for("verify_required"))
 
@@ -1233,6 +1257,8 @@ def create_app():
             current_user.email_verification_token_hash = None
             current_user.email_verification_sent_at = None
             db.session.commit()
+            if is_ajax:
+                return jsonify({"success": False, "error": t("flash.verification_code_expired")}), 400
             flash(t("flash.verification_code_expired"), "error")
             return redirect(url_for("verify_required"))
 
@@ -1241,10 +1267,13 @@ def create_app():
         current_user.email_verification_sent_at = None
         db.session.commit()
         flash(t("flash.email_verified"), "success")
+        session.pop("email_change_old_email", None)
+        session.pop("email_change_new_email", None)
         next_url = safe_next_url(session.pop("post_verify_next", ""), "")
-        if next_url:
-            return redirect(next_url)
-        return redirect(url_for("dashboard"))
+        redirect_url = next_url or url_for("dashboard")
+        if is_ajax:
+            return jsonify({"success": True, "redirect": redirect_url})
+        return redirect(redirect_url)
 
     @app.get("/verify-email/<token>")
     def verify_email(token: str):
@@ -1273,6 +1302,8 @@ def create_app():
         db.session.commit()
         flash(t("flash.email_verified"), "success")
         if current_user.is_authenticated:
+            session.pop("email_change_old_email", None)
+            session.pop("email_change_new_email", None)
             next_url = safe_next_url(session.pop("post_verify_next", ""), "")
             if next_url:
                 return redirect(next_url)
@@ -1290,6 +1321,36 @@ def create_app():
         send_verification_email(current_user, verify_token)
         flash(t("flash.verification_email_sent"), "success")
         return redirect(url_for("verify_required"))
+
+    @app.post("/profile/cancel-email-change")
+    @login_required
+    def cancel_email_change():
+        old_email = session.pop("email_change_old_email", None)
+        new_email = session.pop("email_change_new_email", None)
+        session.pop("post_verify_next", None)
+
+        if not old_email:
+            flash(t("flash.email_change_cancel_failed"), "error")
+            return redirect(url_for("verify_required"))
+
+        # Only revert if the user's email still matches the pending new email.
+        if new_email and current_user.email != new_email:
+            flash(t("flash.email_change_cancel_failed"), "error")
+            return redirect(url_for("profile"))
+
+        # Sanity check: old email should not belong to someone else.
+        existing = User.query.filter(User.email == old_email, User.id != current_user.id).first()
+        if existing:
+            flash(t("flash.email_change_cancel_failed"), "error")
+            return redirect(url_for("profile"))
+
+        current_user.email = old_email
+        current_user.email_verified = True
+        current_user.email_verification_token_hash = None
+        current_user.email_verification_sent_at = None
+        db.session.commit()
+        flash(t("flash.email_change_cancelled"), "info")
+        return redirect(url_for("profile"))
 
     @app.get("/profile")
     @login_required
@@ -1355,6 +1416,10 @@ def create_app():
             flash(t("flash.email_empty"), "error")
             return redirect(redirect_to)
 
+        if not email_is_valid(email):
+            flash(t("flash.email_invalid"), "error")
+            return redirect(redirect_to)
+
         existing = User.query.filter(User.email == email, User.id != current_user.id).first()
         if existing:
             flash(t("flash.email_in_use"), "error")
@@ -1388,6 +1453,11 @@ def create_app():
             avatar_file.save(os.path.join(avatar_dir(), f"user_{current_user.id}{ext}"))
 
         email_changed = email != current_user.email
+        if email_changed:
+            session["email_change_old_email"] = current_user.email
+            session["email_change_new_email"] = email
+            session["post_verify_next"] = redirect_to
+
         current_user.name = name
         current_user.email = email
         verify_token = None
@@ -1396,8 +1466,8 @@ def create_app():
         db.session.commit()
         if verify_token:
             send_verification_email(current_user, verify_token)
-            flash(t("flash.verification_email_sent"), "success")
-        flash(t("flash.profile_updated"), "success")
+        if not email_changed:
+            flash(t("flash.profile_updated"), "success")
         return redirect(redirect_to)
 
     # ---------- Household setup ----------
