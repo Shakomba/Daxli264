@@ -2,9 +2,12 @@
 <html lang="{{ 'ckb' if lang == 'ku' else 'en' }}" dir="{{ 'rtl' if lang == 'ku' else 'ltr' }}">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no,email=no,address=no" />
   <meta name="theme-color" content="#0A0A0F" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>{{ title or t('app.name') }}</title>
 
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
@@ -13,12 +16,15 @@
   <script>
     (function () {
       const stored = localStorage.getItem('theme');
-      if (stored === 'light' || stored === 'dark') {
-        document.documentElement.setAttribute('data-theme', stored);
-        const themeMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeMeta) {
-          themeMeta.setAttribute('content', stored === 'light' ? '#f8fafc' : '#0A0A0F');
-        }
+      const preferred = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches)
+        ? 'light'
+        : 'dark';
+      const theme = (stored === 'light' || stored === 'dark') ? stored : preferred;
+
+      document.documentElement.setAttribute('data-theme', theme);
+      const themeMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeMeta) {
+        themeMeta.setAttribute('content', theme === 'light' ? '#f8fafc' : '#0A0A0F');
       }
     })();
   </script>
@@ -61,8 +67,14 @@
       padding: 0;
     }
     html {
+      /* Overscroll (bounce) background should be a solid theme color. */
+      background-color: #000;
       -webkit-overflow-scrolling: touch;
       scroll-behavior: smooth;
+    }
+
+    html[data-theme="light"] {
+      background-color: #fff;
     }
     
     /* Override RTL for member profiles - keep them LTR */
@@ -112,6 +124,10 @@
     
     /* Mobile bottom nav spacing */
     @media (max-width: 640px) {
+      /* With the top navbar removed on mobile, add top breathing room for app pages. */
+      body:not(.no-mobile-padding) #appRoot {
+        padding-top: 1.25rem;
+      }
       body:not(.no-mobile-padding) {
         padding-bottom: 80px;
       }
@@ -256,7 +272,23 @@
     }
     #appHeaderSpacer {
       transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      margin-bottom: 2.5rem;
+      margin-bottom: 0;
+    }
+    @media (min-width: 641px) {
+      #appHeaderSpacer {
+        margin-bottom: 2.5rem;
+      }
+    }
+    /* Mobile: remove top navbar entirely */
+    @media (max-width: 640px) {
+      #appHeader {
+        display: none !important;
+      }
+      #appHeaderSpacer {
+        display: none !important;
+        height: 0 !important;
+        margin-bottom: 0 !important;
+      }
     }
     .soft {
       background: rgba(15, 16, 23, 0.60);
@@ -754,7 +786,7 @@ a[href^="mailto"],
   <div id="appRoot" class="{% if not hide_navbar %}max-w-7xl mx-auto px-4 {% if is_auth_page %}pt-12 pb-6{% else %}pb-3{% endif %}{% endif %}" style="overflow: visible;">
     {% set next_lang = "en" if lang == "ku" else "ku" %}
     {% if not hide_navbar %}
-    <header id="appHeader" class="{% if is_auth_page %}fixed inset-x-0 top-0 bg-[var(--bg)]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4{% else %}app-header-fixed fixed top-3 left-1/2 -translate-x-1/2 header-shell rounded-3xl px-4 py-3 sm:px-6{% endif %} z-50" style="overflow: visible; {% if not is_auth_page %}width: min(80rem, calc(100vw - 2rem));{% endif %}">
+    <header id="appHeader" class="{% if is_auth_page %}fixed inset-x-0 top-0 bg-[var(--bg)]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4{% else %}app-header-fixed fixed top-0 sm:top-3 left-1/2 -translate-x-1/2 header-shell rounded-3xl px-4 py-3 sm:px-6{% endif %} z-50" style="overflow: visible; {% if not is_auth_page %}width: min(80rem, calc(100vw - 2rem));{% endif %}">
       <div class="{% if is_auth_page %}flex flex-col items-center text-center gap-2{% else %}flex flex-col gap-4 sm:grid sm:grid-cols-[auto,1fr,auto] sm:items-center{% endif %}">
         {% if is_auth_page and not hide_navbar and ep != 'forgot_password' %}
             <div class="flex items-center justify-center gap-3">
@@ -1095,7 +1127,7 @@ a[href^="mailto"],
         // Sync theme color meta
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) {
-          themeMeta.setAttribute('content', theme === 'light' ? '#e2e8f0' : '#0A0A0F');
+          themeMeta.setAttribute('content', theme === 'light' ? '#f8fafc' : '#0A0A0F');
         }
       }
 
@@ -1257,7 +1289,7 @@ a[href^="mailto"],
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (!themeMeta) return;
         const theme = currentTheme();
-        themeMeta.setAttribute('content', theme === 'light' ? '#e2e8f0' : '#0A0A0F');
+        themeMeta.setAttribute('content', theme === 'light' ? '#f8fafc' : '#0A0A0F');
       }
 
       function syncThemeToggle() {
